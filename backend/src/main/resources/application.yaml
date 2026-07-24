@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: viagem-legal
+
+  datasource:
+    # Porta 5544: o container mapeia 5544->5432 para evitar um PostgreSQL
+    # nativo que já ocupa a 5432 na máquina de desenvolvimento.
+    url: ${DB_URL:jdbc:postgresql://localhost:5544/viagemlegal}
+    username: ${DB_USER:viagemlegal}
+    password: ${DB_PASSWORD:viagemlegal}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      # dev only — gera/atualiza o schema automaticamente.
+      # Em produção NUNCA use update/create: gere o SQL e aplique manualmente
+      # (ou plugue Flyway/Liquibase).
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false
+    show-sql: true
+
+# Diretório onde os anexos (documentos, selfies, passagens) são gravados.
+app:
+  storage:
+    local-path: ${STORAGE_PATH:./storage/anexos}
+
+server:
+  port: 8080

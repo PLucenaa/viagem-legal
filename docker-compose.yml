@@ -1,0 +1,29 @@
+# Ambiente local de desenvolvimento — apenas o banco.
+# Keycloak será adicionado depois, num serviço próprio.
+#
+#   docker compose up -d
+#   docker compose down          (mantém os dados)
+#   docker compose down -v       (apaga o volume/dados)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: viagemlegal-postgres
+    environment:
+      POSTGRES_DB: viagemlegal
+      POSTGRES_USER: viagemlegal
+      POSTGRES_PASSWORD: viagemlegal
+    # Host usa 5544 para não colidir com um PostgreSQL instalado nativamente
+    # na máquina (que ocupa a 5432). Dentro do container continua 5432.
+    ports:
+      - "5544:5432"
+    volumes:
+      - viagemlegal-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U viagemlegal -d viagemlegal"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  viagemlegal-pgdata:
