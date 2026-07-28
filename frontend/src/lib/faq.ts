@@ -54,6 +54,8 @@ export const FAQ: FaqItem[] = [
 ];
 
 export const INFO_SERVICO = {
+  titulo: "Autorização de Viagem para Crianças e Adolescentes",
+  orgao: "Divisão de Proteção das Varas da Infância e Juventude de Boa Vista/RR",
   horario: "Segunda a sexta-feira, das 8h às 18h",
   endereco:
     "Avenida General Ataide Teive, 4270, Caimbé, Boa Vista/RR",
