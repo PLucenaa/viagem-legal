@@ -1,0 +1,82 @@
+name: 🚀 Deploy Viagem Legal (PROD)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Detecta quais partes mudaram ──────────────────────────────────────────
+  changes:
+    name: 🔍 Detectar mudanças
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            frontend:
+              - 'frontend/**'
+
+  # ─── Deploy backend via Coolify ────────────────────────────────────────────
+  deploy-backend:
+    name: 🔨 Deploy Backend
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Acionar deploy backend
+        run: |
+          curl -sf -X GET \
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID_BACKEND }}&force=false" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -w "HTTP %{http_code}\n"
+
+  # ─── Deploy frontend via Coolify ───────────────────────────────────────────
+  deploy-frontend:
+    name: 🎨 Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: changes
+    if: ${{ needs.changes.outputs.frontend == 'true' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Acionar deploy frontend
+        run: |
+          curl -sf -X GET \
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy?uuid=${{ secrets.COOLIFY_UUID_FRONTEND }}&force=false" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -w "HTTP %{http_code}\n"
+
+  # ─── Health check pós-deploy ───────────────────────────────────────────────
+  health-check:
+    name: ✅ Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-frontend]
+    if: always() && (needs.deploy-backend.result == 'success' || needs.deploy-frontend.result == 'success')
+    steps:
+      - name: Health check frontend
+        run: |
+          URL="https://viagem-legal.luarr.cloud"
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$URL" || echo "000")
+            if [[ "$STATUS" =~ ^2 ]]; then
+              echo "✅ Frontend OK ($STATUS) tentativa $i"
+              exit 0
+            fi
+            echo "⏳ Aguardando... ($STATUS) tentativa $i/12"
+            sleep 15
+          done
+          echo "⚠️ Health check não respondeu com 2xx após 180s"
+        continue-on-error: true
