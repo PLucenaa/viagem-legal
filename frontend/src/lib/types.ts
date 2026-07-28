@@ -92,3 +92,40 @@ export interface ConsultaProtocoloResponse {
   criadoEm: string;
   atualizadoEm: string;
 }
+
+// Triagem de viagem nacional (Resolução CNJ nº 295/2019).
+
+export type CaminhoTriagem = "DISPENSA" | "EXTRAJUDICIAL" | "UNIDADE_COMPETENTE";
+
+export type PassoTriagem =
+  | "PASSO_1_IDADE"
+  | "PASSO_2_ACOMPANHA_RESPONSAVEL"
+  | "PASSO_3_DESTINO_COMARCA"
+  | "PASSO_4_ACOMPANHA_PARENTE"
+  | "PASSO_4B_PARENTESCO_COMPROVAVEL"
+  | "PASSO_5_ACOMPANHA_AUTORIZADO"
+  | "PASSO_6_DESACOMPANHADO"
+  | "PASSO_6_1_PASSAPORTE_AUTORIZADO"
+  | "PASSO_6_2_AUTORIZACAO_GENITOR";
+
+/** Cada campo é uma resposta já dada; undefined/null = ainda não perguntado. */
+export interface TriagemRequest {
+  maiorOuIgualDezesseisAnos?: boolean | null;
+  viajaComPaiMaeOuResponsavelLegal?: boolean | null;
+  destinoComarcaContiguaOuMesmaRegiaoMetropolitana?: boolean | null;
+  viajaComAscendenteOuColateralAteTerceiroGrau?: boolean | null;
+  parentescoComprovavelDocumentalmente?: boolean | null;
+  viajaComPessoaAutorizadaPeloResponsavel?: boolean | null;
+  viajaDesacompanhado?: boolean | null;
+  passaporteValidoComAutorizacaoParaExterior?: boolean | null;
+  autorizacaoExpressaDeGenitorOuResponsavel?: boolean | null;
+}
+
+export interface TriagemResultadoResponse {
+  concluido: boolean;
+  proximoPasso: PassoTriagem | null;
+  pergunta: string | null;
+  caminho: CaminhoTriagem | null;
+  fundamentoLegal: string | null;
+  mensagem: string | null;
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CircleHelp, ClipboardPlus, FileSearch, Play } from "lucide-react";
+import { CircleHelp, ClipboardPlus, FileSearch, Play, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +12,13 @@ import {
 import { INFO_SERVICO } from "@/lib/faq";
 
 const SERVICOS = [
+  {
+    to: "/triagem",
+    titulo: "Preciso de autorização?",
+    descricao:
+      "Responda perguntas simples e descubra se a viagem exige autorização.",
+    Icon: Route,
+  },
   {
     to: "/solicitar",
     titulo: "Solicitar Autorização",
@@ -85,7 +92,7 @@ export function HomePage() {
         <h2 className="mb-4 text-xl font-semibold text-foreground">
           Serviços
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {SERVICOS.map(({ to, titulo, descricao, Icon }) => (
             <Link
               key={to}

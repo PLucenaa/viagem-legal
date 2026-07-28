@@ -2,6 +2,8 @@ import type {
   ConsultaProtocoloResponse,
   SolicitacaoRequest,
   SolicitacaoResponse,
+  TriagemRequest,
+  TriagemResultadoResponse,
 } from "@/lib/types";
 
 // As chamadas vão para /api (o Vite faz proxy para o backend Spring em dev).
@@ -32,6 +34,18 @@ export async function criarSolicitacao(
   payload: SolicitacaoRequest,
 ): Promise<SolicitacaoResponse> {
   const res = await fetch(`${BASE}/solicitacoes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+export async function avaliarTriagem(
+  payload: TriagemRequest,
+): Promise<TriagemResultadoResponse> {
+  const res = await fetch(`${BASE}/triagem`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
