@@ -43,32 +43,35 @@ Usar como base para o preenchimento assistido do Caminho 2 (extrajudicial):
 ## Fase 1 — MVP (aplicação web responsiva, sem app nativo)
 
 ### Assistente de triagem
-- [ ] Página inicial com assistente digital em português e espanhol
+- [ ] Página inicial com assistente digital em português e espanhol (decisão: usar tradução automática do Google em vez de i18n manual — pendente de implementar o widget)
 - [x] Motor de regras objetivas (não-IA) implementando os 6 passos da [árvore de decisão validada](arvore_decisao_resolucao_cnj_295_2019.md) — backend: `TriagemService`/`TriagemController` (`POST /api/triagem`), stateless, cobertura de testes em `TriagemServiceTest` (12 cenários)
-- [ ] Fluxo sem necessidade de cadastro para a triagem inicial (backend já não exige autenticação; falta o front consumir)
-- [ ] Frontend: tela do assistente chamando `POST /api/triagem` pergunta a pergunta e exibindo o resultado final
-- [ ] Caminho 1 — Dispensa de autorização: tela de orientação clara + lista de documentos, sem gerar arquivo que pareça autorização
-- [ ] Caminho 2 — Resolução extrajudicial: preenchimento assistido do documento adequado + orientações de validade (campo de validade obrigatório, alerta de expiração)
-- [ ] Caminho 3 — Necessário trâmite pela unidade competente: encaminhar para envio digital da solicitação (fluxo de `Solicitacao` já existe no backend, falta ligar a triagem a ele)
+- [x] Fluxo sem necessidade de cadastro para a triagem inicial
+- [x] Frontend: tela do assistente ([TriagemPage.tsx](frontend/src/pages/TriagemPage.tsx)) chamando `POST /api/triagem` pergunta a pergunta — **testado em produção, funcionando**
+- [x] Caminho 1 — Dispensa de autorização: backend agora devolve `documentosNecessarios` (lista específica por ramo da árvore) em `TriagemResultadoResponse`; frontend exibe checklist formatada, sem gerar arquivo que pareça autorização
+- [x] Caminho 2 — Resolução extrajudicial: [ExtrajudicialPage.tsx](frontend/src/pages/ExtrajudicialPage.tsx) — formulário assistido (1 ou 2 responsáveis, acompanhado/desacompanhado conforme a resposta da triagem) gera uma prévia imprimível nos moldes dos 4 modelos oficiais da Resolução, com aviso de que só vale após assinatura + reconhecimento de firma
+- [ ] Caminho 3 — Necessário trâmite pela unidade competente: já linka para `/solicitar` (fluxo de `Solicitacao` existente no backend); a triagem não coleta dados reais (só respostas sim/não), então não há o que pré-preencher hoje — deixado como está
 - [ ] Regra de segurança operacional: qualquer dúvida/inconsistência/caso não previsto cai em análise humana, nunca recusa automática (ainda não implementada — hoje a árvore sempre conclui em um dos 3 caminhos dado respostas completas)
 
 ### Cadastro e envio da solicitação
-- [ ] Formulários digitais para envio de solicitação, documentos e informações complementares
-- [ ] Upload de documentos (cópias) conforme tipo de pedido
-- [ ] Fluxo de confirmação expressa do envio pelo usuário, com registro de data/hora/identificação
-- [ ] Geração de protocolo vinculado ao usuário
+- [x] Formulários digitais para envio de solicitação e informações ([SolicitarPage.tsx](frontend/src/pages/SolicitarPage.tsx)) — **testado em produção, gera protocolo real**
+- [x] Upload de documentos (cópias) conforme tipo de pedido — novo endpoint público `POST /solicitacoes/protocolo/{protocolo}/anexos` + formulário de envio na tela de acompanhamento
+- [x] Geração de protocolo vinculado ao usuário
+- [ ] Fluxo de confirmação expressa do envio pelo usuário, com registro de data/hora/identificação (hoje o envio não tem uma tela de "confirmar e assinar" explícita antes de criar a solicitação)
 
 ### Acompanhamento do cidadão
-- [ ] Tela de consulta de status/andamento do protocolo
-- [ ] Recebimento de pedidos de complementação
-- [ ] Correção de informações/documentos sem reiniciar o atendimento
+- [x] Tela de consulta de status/andamento do protocolo ([AcompanharPage.tsx](frontend/src/pages/AcompanharPage.tsx))
+- [x] Lista de documentos já enviados + formulário de upload adicional (aparece enquanto status está em `RECEBIDA`/`EM_ANALISE`/`PENDENTE_CORRECAO`)
+- [x] Download provisório da autorização quando `DEFERIDA`/`AGUARDANDO_ASSINATURA`/`CONCLUIDA` — prévia via `GET /solicitacoes/protocolo/{protocolo}/autorizacao`, imprimível (print-to-PDF do navegador). **Ainda sem assinatura/QR de autenticidade** — isso é Fase 2, o aviso na tela deixa isso explícito
+- [ ] Recebimento de pedidos de complementação (o backend já tem o status `PENDENTE_CORRECAO` e agora dá pra reenviar anexo; falta destacar visualmente "isso aqui foi pedido pelo analista" de forma mais clara)
+- [ ] Correção de informações/documentos sem reiniciar o atendimento (hoje só dá pra anexar documento novo, não editar os dados já enviados)
 
 ### Painel interno (servidores)
-- [ ] Autenticação/perfis de acesso internos
-- [ ] Fila de gerenciamento de solicitações por status
-- [ ] Separação de pedidos incompletos e solicitação de correções
-- [ ] Registro de análises realizadas (auditoria)
-- [ ] Encaminhamento dos casos aptos à etapa de autorização
+- [x] Fila de gerenciamento de solicitações por status — [PainelListaPage.tsx](frontend/src/pages/painel/PainelListaPage.tsx) (`/painel`), filtro por status + paginação
+- [x] Tela de detalhe + mudança de status — [PainelDetalhePage.tsx](frontend/src/pages/painel/PainelDetalhePage.tsx) (`/painel/:id`), botões de transição espelhando `TransicaoStatus.java`, observação obrigatória em indeferimento/pendência de correção
+- [x] Registro de análises realizadas (auditoria) — histórico de status já mostrado na tela de detalhe (vem do backend)
+- [ ] Autenticação/perfis de acesso internos — **painel hoje é público, sem login** (mesma situação do `SecurityConfig` provisório do backend); prioridade antes de ir a produção real
+- [ ] Separação visual de pedidos incompletos (hoje dá pra filtrar por `PENDENTE_CORRECAO`, mas não há destaque/prioridade na lista)
+- [ ] Encaminhamento dos casos aptos à etapa de autorização — transições até `AGUARDANDO_ASSINATURA`/`CONCLUIDA` já funcionam; falta a emissão do documento final (Fase 2)
 
 ### Infraestrutura básica
 - [ ] Modelagem de dados (usuários, solicitações, protocolos, documentos, status, histórico)
@@ -78,15 +81,14 @@ Usar como base para o preenchimento assistido do Caminho 2 (extrajudicial):
 - [x] Dockerfile do frontend (build Vite + nginx com fallback de SPA)
 - [x] Workflow de deploy PROD via API do Coolify ([deploy.yml](.github/workflows/deploy.yml))
 - [x] Ajuste do Dockerfile do backend para criar `/app/storage` com dono `spring:spring` antes do volume ser montado (evita erro de permissão)
-- [ ] Cadastrar as duas aplicações (backend/frontend) no Coolify e configurar domínios/FQDN
-- [ ] Cadastrar secrets no GitHub: `COOLIFY_URL`, `COOLIFY_TOKEN`, `COOLIFY_UUID_BACKEND`, `COOLIFY_UUID_FRONTEND`
-- [ ] Confirmar domínio real do backend (workflow assume front em `viagem-legal.luarr.cloud`; health-check do backend ainda não incluído por falta do domínio da API)
-- [ ] Subir recurso PostgreSQL no Coolify (mesmo Project/Environment do backend, para resolução via rede interna)
-- [ ] Configurar envs de runtime do backend no Coolify: `DB_URL`, `DB_USER`, `DB_PASSWORD` (apontando para o host interno do Postgres do Coolify)
-- [ ] Montar volume persistente no backend em `/app/storage` e definir `STORAGE_PATH=/app/storage/anexos`
+- [x] Cadastrar as duas aplicações (backend/frontend) no Coolify e configurar domínios/FQDN — `viagem-legal.luarr.cloud` (frontend) e `api.viagem-legal.luarr.cloud` (backend)
+- [ ] Confirmar se o deploy está de fato passando pelo [deploy.yml](.github/workflows/deploy.yml)/GitHub Actions ou se o Coolify está redeployando sozinho via webhook nativo do Git — os logs vistos até agora parecem vir do build nativo do Coolify; se for esse o caso, decidir se ainda vale manter o workflow do GitHub Actions ou remover pra não duplicar
+- [ ] Cadastrar secrets no GitHub: `COOLIFY_URL`, `COOLIFY_TOKEN`, `COOLIFY_UUID_BACKEND`, `COOLIFY_UUID_FRONTEND` (só se for manter o workflow acima)
+- [x] Subir recurso PostgreSQL no Coolify e configurar `DB_URL`/`DB_USER`/`DB_PASSWORD` no backend
+- [x] `VITE_API_URL` consumido de fato pelo frontend ([lib/api.ts](frontend/src/lib/api.ts)) e CORS liberado no backend ([SecurityConfig.java](backend/src/main/java/luarr/viagemlegal/config/SecurityConfig.java)) — **fluxo de triagem testado ponta a ponta em produção**
+- [ ] Montar volume persistente no backend em `/app/storage` e definir `STORAGE_PATH=/app/storage/anexos` (ainda não confirmado se o volume foi de fato criado no Coolify — sem isso, anexos somem a cada deploy)
 - [ ] Ativar backup agendado do Postgres no Coolify
 - [ ] Decidir se/quando criar profile `prod` no Spring (trocar `ddl-auto: update` por Flyway/Liquibase antes de ir a produção real)
-- [ ] Criar `.env.example` no frontend e client HTTP usando `VITE_API_URL` (hoje declarado no Dockerfile mas ainda não consumido no código) — configurar como *Build Variable* no Coolify, não env de runtime
 
 ## Fase 2 — Integrações e automações sensíveis
 

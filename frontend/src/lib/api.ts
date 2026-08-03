@@ -1,7 +1,13 @@
 import type {
+  AutorizacaoDocumentoResponse,
   ConsultaProtocoloResponse,
+  MudancaStatusRequest,
+  Page,
   SolicitacaoRequest,
   SolicitacaoResponse,
+  SolicitacaoResumoResponse,
+  StatusSolicitacao,
+  TipoAnexo,
   TriagemRequest,
   TriagemResultadoResponse,
 } from "@/lib/types";
@@ -62,6 +68,65 @@ export async function consultarPorProtocolo(
   const res = await fetch(
     `${BASE}/solicitacoes/protocolo/${encodeURIComponent(protocolo)}`,
   );
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+export async function enviarAnexoPorProtocolo(
+  protocolo: string,
+  tipo: TipoAnexo,
+  arquivo: File,
+): Promise<ConsultaProtocoloResponse> {
+  const form = new FormData();
+  form.append("tipo", tipo);
+  form.append("arquivo", arquivo);
+  const res = await fetch(
+    `${BASE}/solicitacoes/protocolo/${encodeURIComponent(protocolo)}/anexos`,
+    { method: "POST", body: form },
+  );
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+export async function buscarAutorizacao(
+  protocolo: string,
+): Promise<AutorizacaoDocumentoResponse> {
+  const res = await fetch(
+    `${BASE}/solicitacoes/protocolo/${encodeURIComponent(protocolo)}/autorizacao`,
+  );
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+// --- Painel interno (analista) ---
+// Endpoints ainda sem autenticação (Keycloak a integrar depois).
+
+export async function listarSolicitacoes(
+  status: StatusSolicitacao | undefined,
+  page: number,
+): Promise<Page<SolicitacaoResumoResponse>> {
+  const params = new URLSearchParams({ page: String(page), size: "20" });
+  if (status) params.set("status", status);
+  const res = await fetch(`${BASE}/analista/solicitacoes?${params}`);
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+export async function detalharSolicitacao(id: number): Promise<SolicitacaoResponse> {
+  const res = await fetch(`${BASE}/analista/solicitacoes/${id}`);
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+export async function mudarStatusSolicitacao(
+  id: number,
+  payload: MudancaStatusRequest,
+): Promise<SolicitacaoResponse> {
+  const res = await fetch(`${BASE}/analista/solicitacoes/${id}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   if (!res.ok) return parseError(res);
   return res.json();
 }

@@ -9,6 +9,7 @@ import luarr.viagemlegal.domain.enums.TipoAnexo;
 import luarr.viagemlegal.domain.enums.TipoAutorizacao;
 import luarr.viagemlegal.domain.enums.TipoResponsavel;
 import luarr.viagemlegal.dto.request.SolicitacaoRequest;
+import luarr.viagemlegal.dto.response.AutorizacaoDocumentoResponse;
 import luarr.viagemlegal.dto.response.ConsultaProtocoloResponse;
 import luarr.viagemlegal.dto.response.SolicitacaoResponse;
 import luarr.viagemlegal.dto.response.SolicitacaoResumoResponse;
@@ -24,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Year;
+import java.util.EnumSet;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -88,6 +90,27 @@ public class SolicitacaoService {
                 .orElseThrow(() -> new SolicitacaoNaoEncontradaException(
                         "Solicitação não encontrada para o protocolo: " + protocolo));
         return SolicitacaoMapper.toConsultaProtocolo(s);
+    }
+
+    private static final EnumSet<StatusSolicitacao> STATUS_COM_AUTORIZACAO_EMITIDA = EnumSet.of(
+            StatusSolicitacao.DEFERIDA,
+            StatusSolicitacao.AGUARDANDO_ASSINATURA,
+            StatusSolicitacao.CONCLUIDA);
+
+    /**
+     * Monta o documento da autorização já deferida. Só disponível a partir de
+     * DEFERIDA — ainda sem assinatura/QR de autenticidade (isso é Fase 2).
+     */
+    @Transactional(readOnly = true)
+    public AutorizacaoDocumentoResponse gerarAutorizacao(String protocolo) {
+        Solicitacao s = repository.findByProtocoloComAgregados(protocolo)
+                .orElseThrow(() -> new SolicitacaoNaoEncontradaException(
+                        "Solicitação não encontrada para o protocolo: " + protocolo));
+        if (!STATUS_COM_AUTORIZACAO_EMITIDA.contains(s.getStatus())) {
+            throw new RegraNegocioException(
+                    "A autorização ainda não foi deferida para esta solicitação.");
+        }
+        return SolicitacaoMapper.toAutorizacaoDocumento(s);
     }
 
     @Transactional(readOnly = true)
@@ -160,6 +183,16 @@ public class SolicitacaoService {
                 .build());
 
         return SolicitacaoMapper.toResponse(repository.save(solicitacao));
+    }
+
+    /** Igual a {@link #anexar}, mas para o fluxo público que só conhece o protocolo. */
+    @Transactional
+    public ConsultaProtocoloResponse anexarPorProtocolo(String protocolo, TipoAnexo tipo, MultipartFile arquivo) {
+        Solicitacao solicitacao = repository.findByProtocolo(protocolo)
+                .orElseThrow(() -> new SolicitacaoNaoEncontradaException(
+                        "Solicitação não encontrada para o protocolo: " + protocolo));
+        anexar(solicitacao.getId(), tipo, arquivo);
+        return consultarPorProtocolo(protocolo);
     }
 
     // --- Validações de negócio ---

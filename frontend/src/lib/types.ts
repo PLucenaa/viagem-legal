@@ -75,12 +75,65 @@ export interface HistoricoStatusResponse {
   ocorridoEm: string;
 }
 
+export type TipoAnexo =
+  | "DOC_REQUERENTE"
+  | "DOC_MENOR"
+  | "DOC_ACOMPANHANTE"
+  | "COMPROVANTE_RESIDENCIA"
+  | "PASSAGEM"
+  | "TERMO_GUARDA"
+  | "SELFIE_RG";
+
+export interface AnexoResponse {
+  id: number;
+  tipo: TipoAnexo;
+  nomeArquivo: string;
+  contentType: string;
+  tamanhoBytes: number;
+  enviadoEm: string;
+}
+
 export interface SolicitacaoResponse {
   id: number;
   protocolo: string;
   tipoAutorizacao: TipoAutorizacao;
   status: StatusSolicitacao;
+  tipoResponsavel: TipoResponsavel;
+  requerente: PessoaRequest;
+  menor: MenorRequest;
+  responsavel: PessoaRequest | null;
+  dadosViagem: DadosViagemRequest;
+  anexos: AnexoResponse[];
+  historico: HistoricoStatusResponse[];
+  analistaNome: string | null;
+  observacaoAnalista: string | null;
   criadoEm: string;
+  atualizadoEm: string;
+}
+
+/** Visão resumida para a listagem do painel interno. */
+export interface SolicitacaoResumoResponse {
+  id: number;
+  protocolo: string;
+  tipoAutorizacao: TipoAutorizacao;
+  status: StatusSolicitacao;
+  requerenteNome: string | null;
+  menorNome: string | null;
+  criadoEm: string;
+}
+
+/** Página no formato padrão do Spring Data. */
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface MudancaStatusRequest {
+  novoStatus: StatusSolicitacao;
+  observacao?: string;
 }
 
 export interface ConsultaProtocoloResponse {
@@ -88,9 +141,23 @@ export interface ConsultaProtocoloResponse {
   tipoAutorizacao: TipoAutorizacao;
   status: StatusSolicitacao;
   menorNome: string | null;
+  anexos: AnexoResponse[];
   historico: HistoricoStatusResponse[];
   criadoEm: string;
   atualizadoEm: string;
+}
+
+/** Dados para montar o documento da autorização já deferida. */
+export interface AutorizacaoDocumentoResponse {
+  protocolo: string;
+  tipoAutorizacao: TipoAutorizacao;
+  status: StatusSolicitacao;
+  tipoResponsavel: TipoResponsavel;
+  requerente: PessoaRequest;
+  menor: MenorRequest;
+  responsavel: PessoaRequest | null;
+  dadosViagem: DadosViagemRequest;
+  deferidoEm: string;
 }
 
 // Triagem de viagem nacional (Resolução CNJ nº 295/2019).
@@ -128,4 +195,5 @@ export interface TriagemResultadoResponse {
   caminho: CaminhoTriagem | null;
   fundamentoLegal: string | null;
   mensagem: string | null;
+  documentosNecessarios: string[] | null;
 }

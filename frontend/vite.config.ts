@@ -13,10 +13,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Encaminha chamadas de API para o backend Spring.
-      // Ajuste a porta se rodar o backend em outra (ex.: 8080).
+      // Encaminha chamadas de API para o backend Spring (porta padrão: 8080).
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:8080',
         changeOrigin: true,
       },
     },

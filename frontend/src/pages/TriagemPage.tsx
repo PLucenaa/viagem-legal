@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, X } from "lucide-react";
+import { Check, FileCheck2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -161,26 +161,60 @@ export function TriagemPage() {
               {resultado.mensagem}
             </p>
 
+            {resultado.documentosNecessarios &&
+              resultado.documentosNecessarios.length > 0 && (
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
+                    <FileCheck2 className="size-4 text-primary" />
+                    Documentos necessários
+                  </p>
+                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                    {resultado.documentosNecessarios.map((doc) => (
+                      <li key={doc} className="flex gap-2">
+                        <span aria-hidden className="text-primary">
+                          •
+                        </span>
+                        {doc}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
             {resultado.caminho === "DISPENSA" && (
               <p className="text-sm">
-                Leve consigo um documento de identificação da criança ou
-                adolescente e, quando houver acompanhante, um documento que
-                comprove o vínculo ou a autorização. Este aviso não substitui
-                nenhum documento de viagem.
+                Este aviso não substitui nenhum documento de viagem — ele só
+                informa que, com os documentos acima, não é necessária
+                nenhuma autorização adicional para essa viagem.
               </p>
             )}
 
             {resultado.caminho === "EXTRAJUDICIAL" && (
-              <p className="text-sm">
-                Fale com a{" "}
-                <span className="font-medium text-foreground">
-                  {INFO_SERVICO.orgao}
-                </span>{" "}
-                para obter o modelo de autorização adequado (assinado por
-                escritura pública ou documento particular com firma
-                reconhecida). WhatsApp: {INFO_SERVICO.whatsapp} · E-mail:{" "}
-                {INFO_SERVICO.email}
-              </p>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Você pode preencher agora o modelo de autorização (a
+                  assinatura ainda precisa ter a firma reconhecida em
+                  cartório, por semelhança ou autenticidade). Em caso de
+                  dúvida, fale com a{" "}
+                  <span className="font-medium text-foreground">
+                    {INFO_SERVICO.orgao}
+                  </span>{" "}
+                  — WhatsApp: {INFO_SERVICO.whatsapp} · E-mail:{" "}
+                  {INFO_SERVICO.email}
+                </p>
+                <Button asChild>
+                  <Link
+                    to="/triagem/extrajudicial"
+                    state={{
+                      acompanhado:
+                        respostas.viajaComPessoaAutorizadaPeloResponsavel ===
+                        true,
+                    }}
+                  >
+                    Preencher documento agora
+                  </Link>
+                </Button>
+              </div>
             )}
 
             {resultado.caminho === "UNIDADE_COMPETENTE" && (

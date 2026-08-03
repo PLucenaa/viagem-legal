@@ -9,6 +9,7 @@ import luarr.viagemlegal.dto.request.DadosViagemRequest;
 import luarr.viagemlegal.dto.request.MenorRequest;
 import luarr.viagemlegal.dto.request.SolicitacaoRequest;
 import luarr.viagemlegal.dto.response.AnexoResponse;
+import luarr.viagemlegal.dto.response.AutorizacaoDocumentoResponse;
 import luarr.viagemlegal.dto.response.ConsultaProtocoloResponse;
 import luarr.viagemlegal.dto.response.HistoricoStatusResponse;
 import luarr.viagemlegal.dto.response.SolicitacaoResponse;
@@ -109,9 +110,31 @@ public final class SolicitacaoMapper {
                 s.getTipoAutorizacao(),
                 s.getStatus(),
                 s.getMenor() != null ? s.getMenor().getNomeCompleto() : null,
+                s.getAnexos().stream().map(SolicitacaoMapper::toAnexoResponse).toList(),
                 historicoOrdenado(s),
                 s.getCriadoEm(),
                 s.getAtualizadoEm()
+        );
+    }
+
+    /** deferidoEm: data do primeiro histórico com status DEFERIDA, ou atualizadoEm como fallback. */
+    public static AutorizacaoDocumentoResponse toAutorizacaoDocumento(Solicitacao s) {
+        var deferidoEm = s.getHistorico().stream()
+                .filter(h -> h.getStatusNovo() == luarr.viagemlegal.domain.enums.StatusSolicitacao.DEFERIDA)
+                .map(HistoricoStatus::getOcorridoEm)
+                .min(java.util.Comparator.naturalOrder())
+                .orElse(s.getAtualizadoEm());
+
+        return new AutorizacaoDocumentoResponse(
+                s.getProtocolo(),
+                s.getTipoAutorizacao(),
+                s.getStatus(),
+                s.getTipoResponsavel(),
+                s.getRequerente(),
+                s.getMenor(),
+                s.getResponsavel(),
+                s.getDadosViagem(),
+                deferidoEm
         );
     }
 

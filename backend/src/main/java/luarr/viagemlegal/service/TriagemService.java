@@ -5,6 +5,8 @@ import luarr.viagemlegal.dto.request.TriagemRequest;
 import luarr.viagemlegal.dto.response.TriagemResultadoResponse;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 import static luarr.viagemlegal.domain.enums.PassoTriagem.PASSO_1_IDADE;
 import static luarr.viagemlegal.domain.enums.PassoTriagem.PASSO_2_ACOMPANHA_RESPONSAVEL;
 import static luarr.viagemlegal.domain.enums.PassoTriagem.PASSO_3_DESTINO_COMARCA;
@@ -29,6 +31,18 @@ import static luarr.viagemlegal.domain.enums.PassoTriagem.PASSO_6_DESACOMPANHADO
 @Service
 public class TriagemService {
 
+    private static final String DOC_ID_MENOR = "Documento de identificação da criança/adolescente (RG, Certidão de Nascimento ou Passaporte)";
+    private static final String DOC_ID_RESPONSAVEL = "Documento de identificação de quem acompanha (RG, CNH ou Passaporte)";
+    private static final String DOC_COMPROVANTE_PARENTESCO = "Documento que comprove o parentesco (certidão de nascimento, casamento ou equivalente)";
+    private static final String DOC_ID_PROPRIA = "Documento de identificação da própria pessoa (RG, CNH ou Passaporte)";
+    private static final String DOC_PASSAPORTE = "Passaporte válido, com a autorização expressa para viagem desacompanhada nele constante";
+    private static final String DOC_ID_AUTORIZANTE = "Documento de identificação de quem autoriza (pai, mãe ou responsável legal)";
+    private static final String DOC_AUTORIZACAO_FORMALIZADA = "Autorização por escritura pública ou documento particular com firma reconhecida por semelhança ou autenticidade";
+    private static final String DOC_ID_REQUERENTE = "Documento de identificação do requerente (pai, mãe, tutor ou guardião)";
+    private static final String DOC_COMPROVANTE_RESIDENCIA = "Comprovante de residência";
+    private static final String DOC_TERMO_GUARDA = "Termo de guarda ou tutela, quando o requerente for tutor(a) ou guardião(ã)";
+    private static final String DOC_PASSAGEM = "Cópia da passagem ou itinerário da viagem";
+
     public TriagemResultadoResponse avaliar(TriagemRequest r) {
         if (r.maiorOuIgualDezesseisAnos() == null) {
             return TriagemResultadoResponse.pergunta(PASSO_1_IDADE,
@@ -36,7 +50,8 @@ public class TriagemService {
         }
         if (r.maiorOuIgualDezesseisAnos()) {
             return dispensa("Art. 1º",
-                    "Não é exigida autorização para viagem nacional de pessoa com 16 anos ou mais.");
+                    "Não é exigida autorização para viagem nacional de pessoa com 16 anos ou mais.",
+                    List.of(DOC_ID_PROPRIA));
         }
 
         if (r.viajaComPaiMaeOuResponsavelLegal() == null) {
@@ -45,7 +60,8 @@ public class TriagemService {
         }
         if (r.viajaComPaiMaeOuResponsavelLegal()) {
             return dispensa("Art. 1º",
-                    "O acompanhamento por um dos pais ou pelo responsável legal dispensa a autorização.");
+                    "O acompanhamento por um dos pais ou pelo responsável legal dispensa a autorização.",
+                    List.of(DOC_ID_MENOR, DOC_ID_RESPONSAVEL));
         }
 
         if (r.destinoComarcaContiguaOuMesmaRegiaoMetropolitana() == null) {
@@ -54,7 +70,8 @@ public class TriagemService {
         }
         if (r.destinoComarcaContiguaOuMesmaRegiaoMetropolitana()) {
             return dispensa("Art. 2º, I",
-                    "Viagem para comarca contígua ou da mesma região metropolitana dispensa a autorização.");
+                    "Viagem para comarca contígua ou da mesma região metropolitana dispensa a autorização.",
+                    List.of(DOC_ID_MENOR, DOC_ID_RESPONSAVEL));
         }
 
         if (r.viajaComAscendenteOuColateralAteTerceiroGrau() == null) {
@@ -68,7 +85,8 @@ public class TriagemService {
             }
             if (r.parentescoComprovavelDocumentalmente()) {
                 return dispensa("Art. 2º, II, a",
-                        "Acompanhamento por ascendente ou colateral até o terceiro grau, com parentesco comprovado, dispensa a autorização.");
+                        "Acompanhamento por ascendente ou colateral até o terceiro grau, com parentesco comprovado, dispensa a autorização.",
+                        List.of(DOC_ID_MENOR, DOC_ID_RESPONSAVEL, DOC_COMPROVANTE_PARENTESCO));
             }
         }
 
@@ -78,7 +96,8 @@ public class TriagemService {
         }
         if (r.viajaComPessoaAutorizadaPeloResponsavel()) {
             return extrajudicial("Art. 2º, II, b",
-                    "Acompanhamento por pessoa maior expressamente autorizada pelo responsável exige autorização extrajudicial (escritura pública ou documento particular com firma reconhecida).");
+                    "Acompanhamento por pessoa maior expressamente autorizada pelo responsável exige autorização extrajudicial (escritura pública ou documento particular com firma reconhecida).",
+                    docsExtrajudicial());
         }
 
         if (r.viajaDesacompanhado() == null) {
@@ -96,7 +115,8 @@ public class TriagemService {
         }
         if (r.passaporteValidoComAutorizacaoParaExterior()) {
             return dispensa("Art. 2º, IV",
-                    "Passaporte válido com autorização expressa para viagem desacompanhada ao exterior dispensa a autorização para o trânsito nacional.");
+                    "Passaporte válido com autorização expressa para viagem desacompanhada ao exterior dispensa a autorização para o trânsito nacional.",
+                    List.of(DOC_PASSAPORTE));
         }
 
         if (r.autorizacaoExpressaDeGenitorOuResponsavel() == null) {
@@ -105,22 +125,28 @@ public class TriagemService {
         }
         if (r.autorizacaoExpressaDeGenitorOuResponsavel()) {
             return extrajudicial("Art. 2º, III",
-                    "Autorização expressa de genitor ou responsável para viagem desacompanhada exige formalização por escritura pública ou documento particular com firma reconhecida.");
+                    "Autorização expressa de genitor ou responsável para viagem desacompanhada exige formalização por escritura pública ou documento particular com firma reconhecida.",
+                    docsExtrajudicial());
         }
 
         return unidadeCompetente(
                 "Nenhuma hipótese de dispensa ou de autorização extrajudicial se aplica: o caso segue para processamento pela unidade competente do TJRR.");
     }
 
-    private TriagemResultadoResponse dispensa(String fundamento, String mensagem) {
-        return TriagemResultadoResponse.concluido(CaminhoTriagem.DISPENSA, fundamento, mensagem);
+    private static List<String> docsExtrajudicial() {
+        return List.of(DOC_ID_AUTORIZANTE, DOC_ID_MENOR, DOC_AUTORIZACAO_FORMALIZADA);
     }
 
-    private TriagemResultadoResponse extrajudicial(String fundamento, String mensagem) {
-        return TriagemResultadoResponse.concluido(CaminhoTriagem.EXTRAJUDICIAL, fundamento, mensagem);
+    private TriagemResultadoResponse dispensa(String fundamento, String mensagem, List<String> documentos) {
+        return TriagemResultadoResponse.concluido(CaminhoTriagem.DISPENSA, fundamento, mensagem, documentos);
+    }
+
+    private TriagemResultadoResponse extrajudicial(String fundamento, String mensagem, List<String> documentos) {
+        return TriagemResultadoResponse.concluido(CaminhoTriagem.EXTRAJUDICIAL, fundamento, mensagem, documentos);
     }
 
     private TriagemResultadoResponse unidadeCompetente(String mensagem) {
-        return TriagemResultadoResponse.concluido(CaminhoTriagem.UNIDADE_COMPETENTE, "Art. 1º", mensagem);
+        return TriagemResultadoResponse.concluido(CaminhoTriagem.UNIDADE_COMPETENTE, "Art. 1º", mensagem,
+                List.of(DOC_ID_REQUERENTE, DOC_ID_MENOR, DOC_COMPROVANTE_RESIDENCIA, DOC_TERMO_GUARDA, DOC_PASSAGEM));
     }
 }

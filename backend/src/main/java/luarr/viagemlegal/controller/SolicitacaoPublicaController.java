@@ -3,6 +3,7 @@ package luarr.viagemlegal.controller;
 import jakarta.validation.Valid;
 import luarr.viagemlegal.domain.enums.TipoAnexo;
 import luarr.viagemlegal.dto.request.SolicitacaoRequest;
+import luarr.viagemlegal.dto.response.AutorizacaoDocumentoResponse;
 import luarr.viagemlegal.dto.response.ConsultaProtocoloResponse;
 import luarr.viagemlegal.dto.response.SolicitacaoResponse;
 import luarr.viagemlegal.service.SolicitacaoService;
@@ -52,5 +53,19 @@ public class SolicitacaoPublicaController {
     public ResponseEntity<ConsultaProtocoloResponse> consultarPorProtocolo(
             @PathVariable String protocolo) {
         return ResponseEntity.ok(service.consultarPorProtocolo(protocolo));
+    }
+
+    /** Anexa um documento a uma solicitação existente, identificada pelo protocolo. */
+    @PostMapping(path = "/protocolo/{protocolo}/anexos", consumes = "multipart/form-data")
+    public ConsultaProtocoloResponse anexarPorProtocolo(@PathVariable String protocolo,
+                                                        @RequestParam TipoAnexo tipo,
+                                                        @RequestParam("arquivo") MultipartFile arquivo) {
+        return service.anexarPorProtocolo(protocolo, tipo, arquivo);
+    }
+
+    /** Documento da autorização já deferida (ainda sem assinatura/QR — isso é Fase 2). */
+    @GetMapping("/protocolo/{protocolo}/autorizacao")
+    public AutorizacaoDocumentoResponse gerarAutorizacao(@PathVariable String protocolo) {
+        return service.gerarAutorizacao(protocolo);
     }
 }

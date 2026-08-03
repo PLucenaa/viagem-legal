@@ -9,7 +9,7 @@ export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-orange-500">
+    <header className="sticky top-0 z-40 bg-orange-500 print:hidden">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:h-[4.5rem] sm:px-6">
         <Link
           to="/"
