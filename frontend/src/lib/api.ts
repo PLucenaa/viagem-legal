@@ -6,8 +6,10 @@ import type {
   TriagemResultadoResponse,
 } from "@/lib/types";
 
-// As chamadas vão para /api (o Vite faz proxy para o backend Spring em dev).
-const BASE = "/api";
+// Em dev, "/api" é redirecionado ao backend pelo proxy do Vite (vite.config.ts).
+// Em produção, VITE_API_URL aponta direto para o domínio público do backend
+// (frontend e backend são apps/domínios separados no Coolify).
+const BASE = `${import.meta.env.VITE_API_URL ?? ""}/api`;
 
 /** Erro com a mensagem vinda do ProblemDetail do backend, quando disponível. */
 export class ApiError extends Error {

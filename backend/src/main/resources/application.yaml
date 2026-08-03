@@ -26,6 +26,9 @@ spring:
 app:
   storage:
     local-path: ${STORAGE_PATH:./storage/anexos}
+  cors:
+    # Frontend e backend são apps/domínios separados no Coolify.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,https://viagem-legal.luarr.cloud}
 
 server:
   port: 8080
