@@ -12,37 +12,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  ApiError,
-  buscarAutorizacao,
-  consultarPorProtocolo,
-  enviarAnexoPorProtocolo,
-} from "@/lib/api";
+import { AnexoUploadSection } from "@/components/AnexoUploadSection";
+import { ApiError, buscarAutorizacao, consultarPorProtocolo } from "@/lib/api";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
 import type {
   AutorizacaoDocumentoResponse,
   ConsultaProtocoloResponse,
-  TipoAnexo,
 } from "@/lib/types";
-
-const TIPO_ANEXO_LABEL: Record<TipoAnexo, string> = {
-  DOC_REQUERENTE: "Documento do requerente",
-  DOC_MENOR: "Documento da criança/adolescente",
-  DOC_ACOMPANHANTE: "Documento do acompanhante",
-  COMPROVANTE_RESIDENCIA: "Comprovante de residência",
-  PASSAGEM: "Cópia da passagem",
-  TERMO_GUARDA: "Termo de guarda/tutela",
-  SELFIE_RG: "Selfie segurando o RG",
-};
 
 const STATUS_COM_AUTORIZACAO = new Set([
   "DEFERIDA",
@@ -66,10 +43,6 @@ export function AcompanharPage() {
   const [dados, setDados] = useState<ConsultaProtocoloResponse | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
-
-  const [tipoAnexo, setTipoAnexo] = useState<TipoAnexo>("DOC_REQUERENTE");
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [enviandoAnexo, setEnviandoAnexo] = useState(false);
 
   const [autorizacao, setAutorizacao] =
     useState<AutorizacaoDocumentoResponse | null>(null);
@@ -119,27 +92,6 @@ export function AcompanharPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function enviarAnexo() {
-    if (!dados || !arquivo) return;
-    setEnviandoAnexo(true);
-    try {
-      const atualizado = await enviarAnexoPorProtocolo(
-        dados.protocolo,
-        tipoAnexo,
-        arquivo,
-      );
-      setDados(atualizado);
-      setArquivo(null);
-      toast.success("Documento enviado.");
-    } catch (e) {
-      toast.error(
-        e instanceof ApiError ? e.message : "Não foi possível enviar o anexo.",
-      );
-    } finally {
-      setEnviandoAnexo(false);
-    }
-  }
 
   async function verAutorizacao() {
     if (!dados) return;
@@ -310,75 +262,12 @@ export function AcompanharPage() {
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Documentos enviados ({dados.anexos.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {dados.anexos.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum documento enviado ainda.
-                </p>
-              ) : (
-                <ul className="space-y-1 text-sm">
-                  {dados.anexos.map((a) => (
-                    <li key={a.id} className="flex justify-between gap-2">
-                      <span>
-                        {TIPO_ANEXO_LABEL[a.tipo]} — {a.nomeArquivo}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {(a.tamanhoBytes / 1024).toFixed(0)} KB
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {STATUS_ACEITA_ANEXO.has(dados.status) && (
-                <div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1fr_auto]">
-                  <div>
-                    <Label>Tipo de documento</Label>
-                    <Select
-                      value={tipoAnexo}
-                      onValueChange={(v) => setTipoAnexo(v as TipoAnexo)}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(Object.keys(TIPO_ANEXO_LABEL) as TipoAnexo[]).map(
-                          (t) => (
-                            <SelectItem key={t} value={t}>
-                              {TIPO_ANEXO_LABEL[t]}
-                            </SelectItem>
-                          ),
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Arquivo</Label>
-                    <Input
-                      type="file"
-                      onChange={(e) =>
-                        setArquivo(e.target.files?.[0] ?? null)
-                      }
-                    />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      disabled={!arquivo || enviandoAnexo}
-                      onClick={enviarAnexo}
-                    >
-                      {enviandoAnexo ? "Enviando..." : "Enviar"}
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <AnexoUploadSection
+            protocolo={dados.protocolo}
+            anexos={dados.anexos}
+            podeEnviar={STATUS_ACEITA_ANEXO.has(dados.status)}
+            onEnviado={(anexos) => setDados({ ...dados, anexos })}
+          />
         </div>
       )}
     </div>

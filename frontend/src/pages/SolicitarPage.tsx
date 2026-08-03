@@ -27,13 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AnexoUploadSection } from "@/components/AnexoUploadSection";
 import { criarSolicitacao } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import {
   solicitacaoSchema,
   type SolicitacaoFormValues,
 } from "@/lib/solicitacaoSchema";
-import type { SolicitacaoRequest } from "@/lib/types";
+import type { SolicitacaoRequest, SolicitacaoResponse } from "@/lib/types";
 
 const DOCS = [
   { v: "RG", l: "RG" },
@@ -45,6 +46,7 @@ const DOCS = [
 export function SolicitarPage() {
   const navigate = useNavigate();
   const [enviando, setEnviando] = useState(false);
+  const [criada, setCriada] = useState<SolicitacaoResponse | null>(null);
 
   const form = useForm<SolicitacaoFormValues>({
     resolver: zodResolver(solicitacaoSchema),
@@ -99,9 +101,9 @@ export function SolicitarPage() {
             : undefined,
         },
       };
-      const criada = await criarSolicitacao(payload);
-      toast.success(`Solicitação criada! Protocolo ${criada.protocolo}`);
-      navigate(`/acompanhar?protocolo=${criada.protocolo}`);
+      const resposta = await criarSolicitacao(payload);
+      toast.success(`Solicitação criada! Protocolo ${resposta.protocolo}`);
+      setCriada(resposta);
     } catch (e) {
       const msg =
         e instanceof ApiError ? e.message : "Falha ao enviar a solicitação.";
@@ -109,6 +111,39 @@ export function SolicitarPage() {
     } finally {
       setEnviando(false);
     }
+  }
+
+  if (criada) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-10 text-left">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-foreground">
+            Solicitação criada — protocolo {criada.protocolo}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Agora envie os documentos exigidos (identificação do requerente e
+            da criança/adolescente, comprovante de residência, cópia da
+            passagem e, se for tutor(a) ou guardião(ã), o termo de guarda).
+            Você também pode enviar depois pela tela de acompanhamento.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          <AnexoUploadSection
+            protocolo={criada.protocolo}
+            anexos={criada.anexos}
+            podeEnviar
+            onEnviado={(anexos) => setCriada({ ...criada, anexos })}
+          />
+
+          <Button
+            onClick={() => navigate(`/acompanhar?protocolo=${criada.protocolo}`)}
+          >
+            Ir para o acompanhamento
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
