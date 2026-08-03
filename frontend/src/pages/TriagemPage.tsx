@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Check, FileCheck2, X } from "lucide-react";
+import gsap from "gsap";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +48,8 @@ export function TriagemPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const inicializado = useRef(false);
+  const conteudoRef = useRef<HTMLDivElement>(null);
+  const docsRef = useRef<HTMLUListElement>(null);
 
   function avaliar(payload: TriagemRequest) {
     setCarregando(true);
@@ -91,6 +94,34 @@ export function TriagemPage() {
     avaliar({});
   }
 
+  // Anima a troca de pergunta/resultado a cada resposta.
+  useLayoutEffect(() => {
+    if (!conteudoRef.current) return;
+    gsap.fromTo(
+      conteudoRef.current,
+      { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+    );
+  }, [erro, carregando, resultado]);
+
+  // Revela a checklist de documentos em cascata quando o resultado sai.
+  useEffect(() => {
+    if (resultado?.concluido && docsRef.current) {
+      gsap.fromTo(
+        docsRef.current.children,
+        { opacity: 0, x: -10 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.35,
+          stagger: 0.08,
+          delay: 0.2,
+          ease: "power2.out",
+        },
+      );
+    }
+  }, [resultado]);
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-10 text-left">
       <header className="mb-8">
@@ -106,6 +137,7 @@ export function TriagemPage() {
         </Button>
       </header>
 
+      <div ref={conteudoRef}>
       {erro && (
         <Card className="border-destructive/40">
           <CardContent className="pt-6">
@@ -168,7 +200,10 @@ export function TriagemPage() {
                     <FileCheck2 className="size-4 text-primary" />
                     Documentos necessários
                   </p>
-                  <ul className="space-y-1.5 text-sm text-muted-foreground">
+                  <ul
+                    ref={docsRef}
+                    className="space-y-1.5 text-sm text-muted-foreground"
+                  >
                     {resultado.documentosNecessarios.map((doc) => (
                       <li key={doc} className="flex gap-2">
                         <span aria-hidden className="text-primary">
@@ -231,6 +266,7 @@ export function TriagemPage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   );
 }

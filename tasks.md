@@ -106,6 +106,7 @@ Usar como base para o preenchimento assistido do Caminho 2 (extrajudicial):
 
 - [ ] i18n completo (pt/es) em todas as telas voltadas ao cidadão
 - [ ] Design mobile-first / responsivo
+- [x] Animações de transição no assistente de triagem (GSAP) — fade/slide ao trocar de pergunta ou revelar o resultado, stagger na checklist de documentos
 - [ ] Testes com usuários e servidores antes de ampliar automações (piloto controlado)
 - [ ] Plano de segurança e privacidade de dados sensíveis (LGPD) para documentos e fotos armazenados
 - [ ] Ambiente de auditoria/logs de acesso ao módulo interno
