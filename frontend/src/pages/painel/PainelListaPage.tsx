@@ -91,7 +91,7 @@ export function PainelListaPage() {
 
       {!erro && !carregando && dados && (
         <>
-          <div className="overflow-x-auto rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border bg-card">
             <table className="w-full text-sm">
               <thead className="bg-muted/40 text-left">
                 <tr>

@@ -10,6 +10,14 @@ spring:
     password: ${DB_PASSWORD:viagemlegal}
     driver-class-name: org.postgresql.Driver
 
+  servlet:
+    multipart:
+      # Default do Spring é 1MB/10MB, baixo demais pra foto de documento —
+      # estourava com MaxUploadSizeExceededException e o upload falhava
+      # silenciosamente pro usuário (ver ApiExceptionHandler).
+      max-file-size: 10MB
+      max-request-size: 12MB
+
   jpa:
     hibernate:
       # dev only — gera/atualiza o schema automaticamente.

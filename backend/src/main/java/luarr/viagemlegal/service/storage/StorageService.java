@@ -1,5 +1,6 @@
 package luarr.viagemlegal.service.storage;
 
+import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
@@ -16,4 +17,11 @@ public interface StorageService {
      * @return caminho relativo do arquivo armazenado
      */
     String armazenar(String subpasta, MultipartFile arquivo);
+
+    /**
+     * Recupera o arquivo previamente armazenado.
+     *
+     * @param caminho caminho relativo devolvido por {@link #armazenar}
+     */
+    Resource carregar(String caminho);
 }

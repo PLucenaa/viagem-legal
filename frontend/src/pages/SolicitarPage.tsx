@@ -36,7 +36,7 @@ import {
   solicitacaoSchema,
   type SolicitacaoFormValues,
 } from "@/lib/solicitacaoSchema";
-import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
+import { ANEXO_ACCEPT, ANEXO_DICA, TIPO_ANEXO_LABEL, validarAnexo } from "@/lib/tipoAnexo";
 import type { SolicitacaoRequest, TipoAnexo } from "@/lib/types";
 
 const DOCS = [
@@ -462,8 +462,24 @@ export function SolicitarPage() {
                   <Input
                     key={fileInputKey}
                     type="file"
-                    onChange={(e) => setArquivoStaging(e.target.files?.[0] ?? null)}
+                    accept={ANEXO_ACCEPT}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (!f) {
+                        setArquivoStaging(null);
+                        return;
+                      }
+                      const erro = validarAnexo(f);
+                      if (erro) {
+                        toast.error(erro);
+                        setFileInputKey((k) => k + 1);
+                        setArquivoStaging(null);
+                        return;
+                      }
+                      setArquivoStaging(f);
+                    }}
                   />
+                  <p className="mt-1 text-xs text-muted-foreground">{ANEXO_DICA}</p>
                 </div>
                 <div className="flex items-end">
                   <Button
@@ -526,13 +542,24 @@ function DocumentoInline({
           </Button>
         </div>
       ) : (
-        <Input
-          type="file"
-          onChange={(e) => {
-            const arquivo = e.target.files?.[0];
-            if (arquivo) onAnexar(tipo, arquivo);
-          }}
-        />
+        <>
+          <Input
+            type="file"
+            accept={ANEXO_ACCEPT}
+            onChange={(e) => {
+              const arquivo = e.target.files?.[0];
+              if (!arquivo) return;
+              const erro = validarAnexo(arquivo);
+              if (erro) {
+                toast.error(erro);
+                e.target.value = "";
+                return;
+              }
+              onAnexar(tipo, arquivo);
+            }}
+          />
+          <p className="text-xs text-muted-foreground">{ANEXO_DICA}</p>
+        </>
       )}
     </div>
   );

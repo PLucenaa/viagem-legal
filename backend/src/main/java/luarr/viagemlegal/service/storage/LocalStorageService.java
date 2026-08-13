@@ -2,11 +2,14 @@ package luarr.viagemlegal.service.storage;
 
 import luarr.viagemlegal.config.StorageProperties;
 import luarr.viagemlegal.exception.RegraNegocioException;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -50,6 +53,23 @@ public class LocalStorageService implements StorageService {
             return base.relativize(destino).toString().replace('\\', '/');
         } catch (IOException e) {
             throw new IllegalStateException("Falha ao armazenar arquivo.", e);
+        }
+    }
+
+    @Override
+    public Resource carregar(String caminho) {
+        Path arquivo = base.resolve(caminho).normalize();
+        if (!arquivo.startsWith(base)) {
+            throw new RegraNegocioException("Caminho de arquivo inválido.");
+        }
+        try {
+            Resource resource = new UrlResource(arquivo.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new IllegalStateException("Arquivo não encontrado no storage: " + caminho);
+            }
+            return resource;
+        } catch (MalformedURLException e) {
+            throw new IllegalStateException("Falha ao carregar arquivo.", e);
         }
     }
 }

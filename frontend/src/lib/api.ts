@@ -88,6 +88,11 @@ export async function enviarAnexoPorProtocolo(
   return res.json();
 }
 
+/** URL pra visualizar/baixar o binário de um anexo. */
+export function anexoUrl(id: number): string {
+  return `${BASE}/anexos/${id}`;
+}
+
 export async function buscarAutorizacao(
   protocolo: string,
 ): Promise<AutorizacaoDocumentoResponse> {

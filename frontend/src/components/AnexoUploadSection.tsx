@@ -12,8 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApiError, enviarAnexoPorProtocolo } from "@/lib/api";
-import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
+import { anexoUrl, ApiError, enviarAnexoPorProtocolo } from "@/lib/api";
+import { ANEXO_ACCEPT, ANEXO_DICA, TIPO_ANEXO_LABEL, validarAnexo } from "@/lib/tipoAnexo";
 import type { AnexoResponse, TipoAnexo } from "@/lib/types";
 
 interface AnexoUploadSectionProps {
@@ -70,9 +70,14 @@ export function AnexoUploadSection({
           <ul className="space-y-1 text-sm">
             {anexos.map((a) => (
               <li key={a.id} className="flex justify-between gap-2">
-                <span>
+                <a
+                  href={anexoUrl(a.id)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline"
+                >
                   {TIPO_ANEXO_LABEL[a.tipo]} — {a.nomeArquivo}
-                </span>
+                </a>
                 <span className="text-muted-foreground">
                   {(a.tamanhoBytes / 1024).toFixed(0)} KB
                 </span>
@@ -105,8 +110,24 @@ export function AnexoUploadSection({
               <Label>Arquivo</Label>
               <Input
                 type="file"
-                onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+                accept={ANEXO_ACCEPT}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (!f) {
+                    setArquivo(null);
+                    return;
+                  }
+                  const erro = validarAnexo(f);
+                  if (erro) {
+                    toast.error(erro);
+                    e.target.value = "";
+                    setArquivo(null);
+                    return;
+                  }
+                  setArquivo(f);
+                }}
               />
+              <p className="mt-1 text-xs text-muted-foreground">{ANEXO_DICA}</p>
             </div>
             <div className="flex items-end">
               <Button disabled={!arquivo || enviando} onClick={enviar}>

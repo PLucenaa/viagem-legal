@@ -5,6 +5,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +24,12 @@ public class ApiExceptionHandler {
     @ExceptionHandler(RegraNegocioException.class)
     public ProblemDetail handleRegraNegocio(RegraNegocioException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ProblemDetail handleArquivoGrande(MaxUploadSizeExceededException ex) {
+        return ProblemDetail.forStatusAndDetail(
+                HttpStatus.PAYLOAD_TOO_LARGE, "Arquivo muito grande. O limite é 10MB por documento.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

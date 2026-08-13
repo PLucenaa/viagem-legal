@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { PageContainer } from "@/components/layout/PageContainer";
 import {
+  anexoUrl,
   ApiError,
   detalharSolicitacao,
   mudarStatusSolicitacao,
@@ -18,6 +19,7 @@ import {
   STATUS_LABEL,
   TRANSICOES_PERMITIDAS,
 } from "@/lib/statusSolicitacao";
+import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
 import type { SolicitacaoResponse, StatusSolicitacao } from "@/lib/types";
 
 function Campo({ label, valor }: { label: string; valor?: string | null }) {
@@ -215,9 +217,14 @@ export function PainelDetalhePage() {
               <ul className="space-y-1 text-sm">
                 {solicitacao.anexos.map((a) => (
                   <li key={a.id} className="flex justify-between gap-2">
-                    <span>
-                      {a.tipo} — {a.nomeArquivo}
-                    </span>
+                    <a
+                      href={anexoUrl(a.id)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {TIPO_ANEXO_LABEL[a.tipo]} — {a.nomeArquivo}
+                    </a>
                     <span className="text-muted-foreground">
                       {(a.tamanhoBytes / 1024).toFixed(0)} KB
                     </span>
