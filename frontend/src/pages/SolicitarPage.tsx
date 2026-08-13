@@ -51,11 +51,25 @@ interface DocumentoStaged {
   arquivo: File;
 }
 
+// Tipos de documento já anexados dentro da própria seção do formulário —
+// não aparecem de novo na lista genérica de "Documentos" lá embaixo.
+const TIPOS_INLINE: TipoAnexo[] = [
+  "DOC_REQUERENTE",
+  "COMPROVANTE_RESIDENCIA",
+  "DOC_MENOR",
+  "PASSAGEM",
+];
+
+// Tipos que sobram pra seção genérica "Documentos" (todos, menos os inline).
+const TIPOS_EXTRAS = (Object.keys(TIPO_ANEXO_LABEL) as TipoAnexo[]).filter(
+  (t) => !TIPOS_INLINE.includes(t),
+);
+
 export function SolicitarPage() {
   const navigate = useNavigate();
   const [enviando, setEnviando] = useState(false);
   const [documentos, setDocumentos] = useState<DocumentoStaged[]>([]);
-  const [tipoStaging, setTipoStaging] = useState<TipoAnexo>("DOC_REQUERENTE");
+  const [tipoStaging, setTipoStaging] = useState<TipoAnexo>(TIPOS_EXTRAS[0]);
   const [arquivoStaging, setArquivoStaging] = useState<File | null>(null);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [buscandoCep, setBuscandoCep] = useState(false);
@@ -93,6 +107,7 @@ export function SolicitarPage() {
 
   const tipoAutorizacao = form.watch("tipoAutorizacao");
   const ehHospedagem = tipoAutorizacao === "HOSPEDAGEM";
+  const documentosExtras = documentos.filter((d) => !TIPOS_INLINE.includes(d.tipo));
 
   async function preencherEnderecoPorCep(cepDigitado: string) {
     setBuscandoCep(true);
@@ -168,8 +183,18 @@ export function SolicitarPage() {
     setFileInputKey((k) => k + 1);
   }
 
-  function removerDocumento(index: number) {
-    setDocumentos((docs) => docs.filter((_, i) => i !== index));
+  function removerDocumento(alvo: DocumentoStaged) {
+    setDocumentos((docs) => docs.filter((d) => d !== alvo));
+  }
+
+  // Documentos "amarrados" a uma seção específica (menor, viagem...) — no
+  // máximo um arquivo por tipo, substitui se anexar de novo.
+  function anexarTipoFixo(tipo: TipoAnexo, arquivo: File) {
+    setDocumentos((docs) => [...docs.filter((d) => d.tipo !== tipo), { tipo, arquivo }]);
+  }
+
+  function removerTipoFixo(tipo: TipoAnexo) {
+    setDocumentos((docs) => docs.filter((d) => d.tipo !== tipo));
   }
 
   return (
@@ -264,6 +289,13 @@ export function SolicitarPage() {
               <TextField form={form} name="requerente.telefone" label="Telefone" />
               <TextField form={form} name="requerente.email" label="E-mail (opcional)" />
               <TextField form={form} name="requerente.profissao" label="Profissão (opcional)" />
+              <DocumentoInline
+                tipo="DOC_REQUERENTE"
+                label="Foto/cópia do documento do responsável"
+                documentos={documentos}
+                onAnexar={anexarTipoFixo}
+                onRemover={removerTipoFixo}
+              />
             </CardContent>
           </Card>
 
@@ -302,6 +334,13 @@ export function SolicitarPage() {
               <TextField form={form} name="requerente.endereco.bairro" label="Bairro" />
               <TextField form={form} name="requerente.endereco.cidade" label="Cidade" />
               <TextField form={form} name="requerente.endereco.uf" label="UF" />
+              <DocumentoInline
+                tipo="COMPROVANTE_RESIDENCIA"
+                label="Comprovante de residência"
+                documentos={documentos}
+                onAnexar={anexarTipoFixo}
+                onRemover={removerTipoFixo}
+              />
             </CardContent>
           </Card>
 
@@ -316,6 +355,13 @@ export function SolicitarPage() {
               <DocSelect form={form} name="menor.tipoDocumento" label="Documento" />
               <TextField form={form} name="menor.numeroDocumento" label="Nº do documento" />
               <TextField form={form} name="menor.naturalidade" label="Naturalidade (opcional)" />
+              <DocumentoInline
+                tipo="DOC_MENOR"
+                label="Foto/cópia do documento do menor"
+                documentos={documentos}
+                onAnexar={anexarTipoFixo}
+                onRemover={removerTipoFixo}
+              />
             </CardContent>
           </Card>
 
@@ -332,6 +378,13 @@ export function SolicitarPage() {
               {ehHospedagem && (
                 <TextField form={form} name="dadosViagem.validadeDias" label="Validade (dias)" type="number" />
               )}
+              <DocumentoInline
+                tipo="PASSAGEM"
+                label={ehHospedagem ? "Cópia da reserva" : "Cópia do bilhete/passagem"}
+                documentos={documentos}
+                onAnexar={anexarTipoFixo}
+                onRemover={removerTipoFixo}
+              />
             </CardContent>
           </Card>
 
@@ -359,14 +412,14 @@ export function SolicitarPage() {
               <CardTitle className="text-base">Documentos</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {documentos.length === 0 ? (
+              {documentosExtras.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhum documento adicionado ainda. Você também pode enviar
-                  depois pela tela de acompanhamento.
+                  Nenhum documento extra adicionado ainda. Você também pode
+                  enviar depois pela tela de acompanhamento.
                 </p>
               ) : (
                 <ul className="space-y-1 text-sm">
-                  {documentos.map((doc, i) => (
+                  {documentosExtras.map((doc, i) => (
                     <li key={i} className="flex items-center justify-between gap-2">
                       <span>
                         {TIPO_ANEXO_LABEL[doc.tipo]} — {doc.arquivo.name}
@@ -375,7 +428,7 @@ export function SolicitarPage() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => removerDocumento(i)}
+                        onClick={() => removerDocumento(doc)}
                       >
                         Remover
                       </Button>
@@ -395,11 +448,12 @@ export function SolicitarPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {(Object.keys(TIPO_ANEXO_LABEL) as TipoAnexo[]).map((t) => (
-                        <SelectItem key={t} value={t}>
-                          {TIPO_ANEXO_LABEL[t]}
-                        </SelectItem>
-                      ))}
+                      {TIPOS_EXTRAS
+                        .map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {TIPO_ANEXO_LABEL[t]}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -440,6 +494,49 @@ export function SolicitarPage() {
 }
 
 // --- Campos reutilizáveis ---
+
+/** Anexo de um tipo fixo, embutido na própria seção do formulário a que pertence. */
+function DocumentoInline({
+  tipo,
+  label,
+  documentos,
+  onAnexar,
+  onRemover,
+}: {
+  tipo: TipoAnexo;
+  label: string;
+  documentos: DocumentoStaged[];
+  onAnexar: (tipo: TipoAnexo, arquivo: File) => void;
+  onRemover: (tipo: TipoAnexo) => void;
+}) {
+  const existente = documentos.find((d) => d.tipo === tipo);
+  return (
+    <div className="grid gap-2 sm:col-span-2">
+      <Label>{label}</Label>
+      {existente ? (
+        <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2 text-sm">
+          <span className="truncate">{existente.arquivo.name}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemover(tipo)}
+          >
+            Trocar
+          </Button>
+        </div>
+      ) : (
+        <Input
+          type="file"
+          onChange={(e) => {
+            const arquivo = e.target.files?.[0];
+            if (arquivo) onAnexar(tipo, arquivo);
+          }}
+        />
+      )}
+    </div>
+  );
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function TextField({ form, name, label, type = "text" }: any) {
