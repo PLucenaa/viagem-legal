@@ -12,6 +12,18 @@ dist
 dist-ssr
 *.local
 
+# Projeto usa Yarn — não versionar lockfile do npm por engano
+package-lock.json
+
+# Yarn Berry (nodeLinker: node-modules) — mantém config/lock, ignora cache
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
