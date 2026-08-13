@@ -54,7 +54,7 @@ Usar como base para o preenchimento assistido do Caminho 2 (extrajudicial):
 
 ### Cadastro e envio da solicitação
 - [x] Formulários digitais para envio de solicitação e informações ([SolicitarPage.tsx](frontend/src/pages/SolicitarPage.tsx)) — **testado em produção, gera protocolo real**
-- [x] Upload de documentos (cópias) conforme tipo de pedido — endpoint público `POST /solicitacoes/protocolo/{protocolo}/anexos` + componente compartilhado [AnexoUploadSection.tsx](frontend/src/components/AnexoUploadSection.tsx), usado tanto no fluxo de criação (`/solicitar`, logo após gerar o protocolo) quanto no acompanhamento
+- [x] Upload de documentos (cópias) conforme tipo de pedido — agora selecionado **dentro do próprio formulário** de `/solicitar` (fica em memória no navegador até o clique em "Enviar solicitação"; aí sim são enviados um a um, logo após o protocolo ser gerado, no mesmo submit). No acompanhamento continua disponível via [AnexoUploadSection.tsx](frontend/src/components/AnexoUploadSection.tsx), pra quem quiser enviar depois
 - [x] Geração de protocolo vinculado ao usuário
 - [ ] Fluxo de confirmação expressa do envio pelo usuário, com registro de data/hora/identificação (hoje o envio não tem uma tela de "confirmar e assinar" explícita antes de criar a solicitação)
 

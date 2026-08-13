@@ -27,15 +27,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AnexoUploadSection } from "@/components/AnexoUploadSection";
+import { Label } from "@/components/ui/label";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { criarSolicitacao } from "@/lib/api";
+import { criarSolicitacao, enviarAnexoPorProtocolo } from "@/lib/api";
 import { ApiError } from "@/lib/api";
+import { buscarCep } from "@/lib/cep";
 import {
   solicitacaoSchema,
   type SolicitacaoFormValues,
 } from "@/lib/solicitacaoSchema";
-import type { SolicitacaoRequest, SolicitacaoResponse } from "@/lib/types";
+import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
+import type { SolicitacaoRequest, TipoAnexo } from "@/lib/types";
 
 const DOCS = [
   { v: "RG", l: "RG" },
@@ -44,10 +46,19 @@ const DOCS = [
   { v: "CERTIDAO_NASCIMENTO", l: "Certidão de Nascimento" },
 ] as const;
 
+interface DocumentoStaged {
+  tipo: TipoAnexo;
+  arquivo: File;
+}
+
 export function SolicitarPage() {
   const navigate = useNavigate();
   const [enviando, setEnviando] = useState(false);
-  const [criada, setCriada] = useState<SolicitacaoResponse | null>(null);
+  const [documentos, setDocumentos] = useState<DocumentoStaged[]>([]);
+  const [tipoStaging, setTipoStaging] = useState<TipoAnexo>("DOC_REQUERENTE");
+  const [arquivoStaging, setArquivoStaging] = useState<File | null>(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [buscandoCep, setBuscandoCep] = useState(false);
 
   const form = useForm<SolicitacaoFormValues>({
     resolver: zodResolver(solicitacaoSchema),
@@ -83,6 +94,31 @@ export function SolicitarPage() {
   const tipoAutorizacao = form.watch("tipoAutorizacao");
   const ehHospedagem = tipoAutorizacao === "HOSPEDAGEM";
 
+  async function preencherEnderecoPorCep(cepDigitado: string) {
+    setBuscandoCep(true);
+    try {
+      const endereco = await buscarCep(cepDigitado);
+      if (!endereco) {
+        toast.error("CEP não encontrado. Preencha o endereço manualmente.");
+        return;
+      }
+      form.setValue("requerente.endereco.logradouro", endereco.logradouro, {
+        shouldValidate: true,
+      });
+      form.setValue("requerente.endereco.bairro", endereco.bairro, {
+        shouldValidate: true,
+      });
+      form.setValue("requerente.endereco.cidade", endereco.localidade, {
+        shouldValidate: true,
+      });
+      form.setValue("requerente.endereco.uf", endereco.uf, {
+        shouldValidate: true,
+      });
+    } finally {
+      setBuscandoCep(false);
+    }
+  }
+
   async function onSubmit(values: SolicitacaoFormValues) {
     setEnviando(true);
     try {
@@ -103,8 +139,19 @@ export function SolicitarPage() {
         },
       };
       const resposta = await criarSolicitacao(payload);
+
+      for (const doc of documentos) {
+        try {
+          await enviarAnexoPorProtocolo(resposta.protocolo, doc.tipo, doc.arquivo);
+        } catch {
+          toast.error(
+            `Solicitação criada, mas falhou o envio de "${doc.arquivo.name}". Envie de novo pela tela de acompanhamento.`,
+          );
+        }
+      }
+
       toast.success(`Solicitação criada! Protocolo ${resposta.protocolo}`);
-      setCriada(resposta);
+      navigate(`/acompanhar?protocolo=${resposta.protocolo}`);
     } catch (e) {
       const msg =
         e instanceof ApiError ? e.message : "Falha ao enviar a solicitação.";
@@ -114,37 +161,15 @@ export function SolicitarPage() {
     }
   }
 
-  if (criada) {
-    return (
-      <PageContainer>
-        <div className="mb-6">
-          <h1 className="font-display text-2xl font-semibold text-foreground">
-            Solicitação criada — protocolo {criada.protocolo}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Agora envie os documentos exigidos (identificação do requerente e
-            da criança/adolescente, comprovante de residência, cópia da
-            passagem e, se for tutor(a) ou guardião(ã), o termo de guarda).
-            Você também pode enviar depois pela tela de acompanhamento.
-          </p>
-        </div>
+  function adicionarDocumento() {
+    if (!arquivoStaging) return;
+    setDocumentos((docs) => [...docs, { tipo: tipoStaging, arquivo: arquivoStaging }]);
+    setArquivoStaging(null);
+    setFileInputKey((k) => k + 1);
+  }
 
-        <div className="space-y-4">
-          <AnexoUploadSection
-            protocolo={criada.protocolo}
-            anexos={criada.anexos}
-            podeEnviar
-            onEnviado={(anexos) => setCriada({ ...criada, anexos })}
-          />
-
-          <Button
-            onClick={() => navigate(`/acompanhar?protocolo=${criada.protocolo}`)}
-          >
-            Ir para o acompanhamento
-          </Button>
-        </div>
-      </PageContainer>
-    );
+  function removerDocumento(index: number) {
+    setDocumentos((docs) => docs.filter((_, i) => i !== index));
   }
 
   return (
@@ -245,15 +270,38 @@ export function SolicitarPage() {
           {/* Endereço */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Endereço (Boa Vista/RR)</CardTitle>
+              <CardTitle className="text-base">Endereço</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="requerente.endereco.cep"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>CEP</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        onBlur={(e) => {
+                          field.onBlur();
+                          preencherEnderecoPorCep(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                    {buscandoCep && (
+                      <p className="text-xs text-muted-foreground">
+                        Buscando endereço...
+                      </p>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <TextField form={form} name="requerente.endereco.logradouro" label="Logradouro" />
               <TextField form={form} name="requerente.endereco.numero" label="Número" />
               <TextField form={form} name="requerente.endereco.bairro" label="Bairro" />
               <TextField form={form} name="requerente.endereco.cidade" label="Cidade" />
               <TextField form={form} name="requerente.endereco.uf" label="UF" />
-              <TextField form={form} name="requerente.endereco.cep" label="CEP" />
             </CardContent>
           </Card>
 
@@ -303,6 +351,79 @@ export function SolicitarPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Documentos — ficam guardados no navegador e só são enviados
+              junto com a solicitação, ao clicar em "Enviar solicitação". */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Documentos</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {documentos.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum documento adicionado ainda. Você também pode enviar
+                  depois pela tela de acompanhamento.
+                </p>
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {documentos.map((doc, i) => (
+                    <li key={i} className="flex items-center justify-between gap-2">
+                      <span>
+                        {TIPO_ANEXO_LABEL[doc.tipo]} — {doc.arquivo.name}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removerDocumento(i)}
+                      >
+                        Remover
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1fr_auto]">
+                <div>
+                  <Label>Tipo de documento</Label>
+                  <Select
+                    value={tipoStaging}
+                    onValueChange={(v) => setTipoStaging(v as TipoAnexo)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(TIPO_ANEXO_LABEL) as TipoAnexo[]).map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {TIPO_ANEXO_LABEL[t]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Arquivo</Label>
+                  <Input
+                    key={fileInputKey}
+                    type="file"
+                    onChange={(e) => setArquivoStaging(e.target.files?.[0] ?? null)}
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!arquivoStaging}
+                    onClick={adicionarDocumento}
+                  >
+                    Adicionar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           <div className="flex justify-end gap-3">
             <Button asChild variant="outline" type="button">
