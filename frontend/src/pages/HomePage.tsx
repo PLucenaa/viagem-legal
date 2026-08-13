@@ -9,8 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Signpost } from "@/components/Signpost";
-import { Pinwheel } from "@/components/Pinwheel";
+import { CriancaPapagaio } from "@/components/CriancaPapagaio";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { INFO_SERVICO } from "@/lib/faq";
 
@@ -60,9 +59,9 @@ export function HomePage() {
             Poder Judiciário de Roraima
           </p>
           <h1 className="mt-3 font-display text-4xl leading-[1.05] font-semibold text-foreground sm:text-5xl">
-            Uma placa,
+            Viagem
             <br />
-            três caminhos.
+            Legal
           </h1>
           <p className="mt-4 max-w-md text-muted-foreground">
             {INFO_SERVICO.titulo}. Descubra em poucos minutos se a viagem da
@@ -105,11 +104,8 @@ export function HomePage() {
           )}
         </div>
 
-        <div className="relative mx-auto flex w-full max-w-sm justify-center">
-          <Pinwheel
-            className="absolute -top-6 -right-2 max-w-[64px] opacity-90 sm:max-w-[76px]"
-          />
-          <Signpost className="w-full" />
+        <div className="mx-auto flex w-full max-w-sm justify-center">
+          <CriancaPapagaio className="w-full" />
         </div>
       </header>
 
