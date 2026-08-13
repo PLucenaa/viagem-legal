@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageContainer } from "@/components/layout/PageContainer";
 import type { TipoResponsavel } from "@/lib/types";
 
 interface PessoaForm {
@@ -264,9 +265,9 @@ export function ExtrajudicialPage() {
   const [modo, setModo] = useState<"form" | "previa">("form");
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 text-left print:max-w-none print:px-0 print:py-0">
+    <PageContainer className="print:max-w-none print:px-0 print:py-0">
       <header className="mb-8 print:hidden">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           Autorização de viagem — documento extrajudicial
         </h1>
         <p className="mt-2 text-muted-foreground">
@@ -538,6 +539,6 @@ export function ExtrajudicialPage() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

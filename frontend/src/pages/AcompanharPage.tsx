@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AnexoUploadSection } from "@/components/AnexoUploadSection";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { ApiError, buscarAutorizacao, consultarPorProtocolo } from "@/lib/api";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
 import type {
@@ -111,7 +112,7 @@ export function AcompanharPage() {
 
   if (autorizacao) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-10 text-left print:max-w-none print:px-0 print:py-0">
+      <PageContainer className="print:max-w-none print:px-0 print:py-0">
         <div className="mb-4 flex gap-3 print:hidden">
           <Button variant="outline" onClick={() => setAutorizacao(null)}>
             ← Voltar
@@ -171,17 +172,17 @@ export function AcompanharPage() {
             Varas da Infância e Juventude de Boa Vista/RR
           </p>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 text-left">
+    <PageContainer>
       <div className="mb-6">
         <Button asChild variant="link" size="sm" className="px-0">
           <Link to="/">← Voltar</Link>
         </Button>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="font-display text-2xl font-semibold text-foreground">
           Acompanhar solicitação
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -270,6 +271,6 @@ export function AcompanharPage() {
           />
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

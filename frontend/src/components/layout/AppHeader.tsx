@@ -9,33 +9,43 @@ export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
 
   return (
-    <header className="sticky top-0 z-40 bg-orange-500 print:hidden">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:h-[4.5rem] sm:px-6">
+    <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden">
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:min-h-20 sm:gap-4 sm:px-6">
         <Link
           to="/"
-          className="flex min-w-0 items-center gap-3"
+          className="flex min-w-0 flex-1 items-center gap-3"
           onClick={() => setMenuAberto(false)}
         >
-          {/* Quadrado: só o símbolo (topo do PNG) */}
-          <span className="flex size-12 shrink-0 items-start justify-center overflow-hidden sm:size-14">
+          {/* A logo original tem o símbolo em cima e o texto "Poder Judiciário"
+              embaixo, ambos ocupando a largura toda — por isso o recorte é
+              largo e baixo (não quadrado), só pra mostrar o símbolo. */}
+          <span className="flex h-10 w-[5.75rem] shrink-0 items-start justify-center overflow-hidden sm:h-11 sm:w-24">
             <img
               src={logoTjrr}
               alt=""
               aria-hidden
-              className="h-15 w-auto shrink-0 max-w-none object-cover object-top"
+              className="h-auto w-full shrink-0 object-cover object-top"
             />
           </span>
 
-          {/* Título ao lado do símbolo */}
-          <span className="min-w-0 text-left text-xs font-semibold leading-tight tracking-wide text-white uppercase sm:text-sm">
-            <span className="block">{HEADER.marcaLinha1}</span>
-            <span className="block font-medium">{HEADER.marcaLinha2}</span>
+          {/* Abaixo de sm não cabe o título completo em uma linha — usa a
+              marca curta pra não quebrar e estourar a altura do header. */}
+          <span className="min-w-0 truncate text-[13px] font-semibold tracking-[0.06em] text-paper uppercase lg:hidden">
+            {HEADER.marcaCurta}
+          </span>
+          <span className="hidden min-w-0 text-left leading-tight lg:block">
+            <span className="block truncate text-xs font-semibold tracking-[0.06em] text-paper uppercase">
+              {HEADER.marcaLinha1}
+            </span>
+            <span className="mt-0.5 block truncate text-[11px] tracking-[0.03em] text-paper/55 uppercase">
+              {HEADER.marcaLinha2}
+            </span>
           </span>
           <span className="sr-only">{HEADER.logoAlt}</span>
         </Link>
 
         <nav
-          className="hidden items-center gap-1 md:flex"
+          className="hidden items-center gap-1 lg:flex"
           aria-label="Principal"
         >
           {HEADER.nav.map((item) => (
@@ -45,8 +55,8 @@ export function AppHeader() {
               end={item.to === "/"}
               className={({ isActive }) =>
                 cn(
-                  "rounded-md px-3 py-2 text-sm font-medium text-white/90 transition hover:bg-black/10 hover:text-white",
-                  isActive && "bg-black/15 text-white"
+                  "rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper",
+                  isActive && "bg-lavrado text-ink hover:bg-lavrado",
                 )
               }
             >
@@ -57,7 +67,7 @@ export function AppHeader() {
 
         <button
           type="button"
-          className="inline-flex size-10 items-center justify-center rounded-md text-white transition hover:bg-black/10 md:hidden"
+          className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10 lg:hidden"
           aria-expanded={menuAberto}
           aria-controls="menu-mobile"
           aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
@@ -70,7 +80,7 @@ export function AppHeader() {
       {menuAberto && (
         <nav
           id="menu-mobile"
-          className="border-t border-white/20 px-4 py-3 md:hidden"
+          className="border-t border-paper/15 px-4 py-3 lg:hidden"
           aria-label="Mobile"
         >
           <ul className="flex flex-col gap-1">
@@ -82,8 +92,8 @@ export function AppHeader() {
                   onClick={() => setMenuAberto(false)}
                   className={({ isActive }) =>
                     cn(
-                      "block rounded-md px-3 py-2.5 text-sm font-medium text-white/90 hover:bg-black/10",
-                      isActive && "bg-black/15 text-white"
+                      "block rounded-md px-3 py-2.5 text-xs font-medium tracking-wide text-paper/80 uppercase hover:bg-paper/10",
+                      isActive && "bg-lavrado text-ink",
                     )
                   }
                 >

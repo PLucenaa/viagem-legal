@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ApiError, listarSolicitacoes } from "@/lib/api";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
 import type { Page, SolicitacaoResumoResponse, StatusSolicitacao } from "@/lib/types";
 
@@ -50,9 +51,9 @@ export function PainelListaPage() {
   }, [status, pagina]);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 text-left">
+    <PageContainer largura="tabela">
       <header className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">
           Painel interno — Solicitações
         </h1>
         <p className="mt-2 text-muted-foreground">
@@ -164,6 +165,6 @@ export function PainelListaPage() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

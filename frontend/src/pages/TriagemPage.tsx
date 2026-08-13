@@ -12,6 +12,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ApiError, avaliarTriagem } from "@/lib/api";
+import { Signpost } from "@/components/Signpost";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { INFO_SERVICO } from "@/lib/faq";
 import type {
   CaminhoTriagem,
@@ -123,9 +125,12 @@ export function TriagemPage() {
   }, [resultado]);
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 text-left">
+    <PageContainer>
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <p className="text-xs font-semibold tracking-[0.14em] text-rio uppercase">
+          Assistente de triagem
+        </p>
+        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
           Preciso de autorização de viagem?
         </h1>
         <p className="mt-2 text-muted-foreground">
@@ -160,7 +165,9 @@ export function TriagemPage() {
       {!erro && !carregando && resultado && !resultado.concluido && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{resultado.pergunta}</CardTitle>
+            <CardTitle className="font-display text-lg">
+              {resultado.pergunta}
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex gap-3">
             <Button className="gap-2" onClick={() => responder(true)}>
@@ -178,9 +185,12 @@ export function TriagemPage() {
       )}
 
       {!erro && !carregando && resultado?.concluido && (
-        <Card>
+        <Card className="overflow-hidden">
+          <div className="flex justify-center bg-secondary/50 pt-6">
+            <Signpost ativo={resultado.caminho} className="max-w-[260px]" />
+          </div>
           <CardHeader>
-            <CardTitle className="text-lg">
+            <CardTitle className="font-display text-lg">
               {resultado.caminho && TITULO_CAMINHO[resultado.caminho]}
             </CardTitle>
             <CardDescription>
@@ -267,6 +277,6 @@ export function TriagemPage() {
         </Card>
       )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

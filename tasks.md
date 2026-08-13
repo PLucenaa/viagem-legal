@@ -107,6 +107,7 @@ Usar como base para o preenchimento assistido do Caminho 2 (extrajudicial):
 - [ ] i18n completo (pt/es) em todas as telas voltadas ao cidadão
 - [ ] Design mobile-first / responsivo
 - [x] Animações de transição no assistente de triagem (GSAP) — fade/slide ao trocar de pergunta ou revelar o resultado, stagger na checklist de documentos
+- [x] Identidade visual própria (app inteiro) — paleta "papel de mapa + sinalização de estrada" (ink/paper/lavrado/estrada/rio/tepui em [index.css](frontend/src/index.css)), tipografia Fraunces (display) + Public Sans (corpo) + JetBrains Mono (protocolo/nav), assinatura visual em [Signpost.tsx](frontend/src/components/Signpost.tsx) (placa de 3 braços, reaproveitada no resultado da triagem) e [Pinwheel.tsx](frontend/src/components/Pinwheel.tsx) (catavento animado, decorativo). Testado visualmente via Playwright headless na Home e na triagem (tela de pergunta/erro); as telas dependentes do backend (resultado da triagem, solicitar, acompanhar, painel) herdam o tema pelos tokens mas não foram verificadas ao vivo neste ambiente (sem Postgres local disponível)
 - [ ] Testes com usuários e servidores antes de ampliar automações (piloto controlado)
 - [ ] Plano de segurança e privacidade de dados sensíveis (LGPD) para documentos e fotos armazenados
 - [ ] Ambiente de auditoria/logs de acesso ao módulo interno

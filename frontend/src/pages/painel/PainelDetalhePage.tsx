@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { PageContainer } from "@/components/layout/PageContainer";
 import {
   ApiError,
   detalharSolicitacao,
@@ -92,30 +93,34 @@ export function PainelDetalhePage() {
   }
 
   if (carregando) {
-    return <p className="mx-auto max-w-4xl px-4 py-10 text-muted-foreground">Carregando…</p>;
+    return (
+      <PageContainer>
+        <p className="text-muted-foreground">Carregando…</p>
+      </PageContainer>
+    );
   }
 
   if (erro || !solicitacao) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-10">
+      <PageContainer>
         <p className="text-sm text-destructive">{erro ?? "Não encontrado."}</p>
         <Button asChild variant="link" className="mt-2 px-0">
           <Link to="/painel">← Voltar</Link>
         </Button>
-      </div>
+      </PageContainer>
     );
   }
 
   const transicoes = TRANSICOES_PERMITIDAS[solicitacao.status];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10 text-left">
+    <PageContainer>
       <header className="mb-6">
         <Button asChild variant="link" className="px-0">
           <Link to="/painel">← Voltar para a lista</Link>
         </Button>
         <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="font-display text-2xl font-semibold tracking-tight">
             {solicitacao.protocolo}
           </h1>
           <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
@@ -292,6 +297,6 @@ export function PainelDetalhePage() {
           </Card>
         )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

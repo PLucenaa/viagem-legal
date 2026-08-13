@@ -6,13 +6,14 @@ import {
 } from "@/components/ui/accordion";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { FAQ } from "@/lib/faq";
 
 export function PerguntasPage() {
     return (
-        <div className="mx-auto max-w-3xl px-4 py-10 text-left">
+        <PageContainer>
             <header className="mb-8">
-                <h1 className="text-3xl font-semibold tracking-tight">
+                <h1 className="font-display text-3xl font-semibold tracking-tight">
                     Perguntas frequentes
                 </h1>
                 <Button asChild variant="link" className="mt-2 px-0">
@@ -32,6 +33,6 @@ export function PerguntasPage() {
                     </AccordionItem>
                 ))}
             </Accordion>
-        </div>
+        </PageContainer>
     );
 }

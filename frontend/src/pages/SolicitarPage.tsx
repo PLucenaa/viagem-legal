@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AnexoUploadSection } from "@/components/AnexoUploadSection";
+import { PageContainer } from "@/components/layout/PageContainer";
 import { criarSolicitacao } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import {
@@ -115,9 +116,9 @@ export function SolicitarPage() {
 
   if (criada) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-10 text-left">
+      <PageContainer>
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-foreground">
+          <h1 className="font-display text-2xl font-semibold text-foreground">
             Solicitação criada — protocolo {criada.protocolo}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -142,17 +143,17 @@ export function SolicitarPage() {
             Ir para o acompanhamento
           </Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10 text-left">
+    <PageContainer>
       <div className="mb-6">
         <Button asChild variant="link" size="sm" className="px-0">
           <Link to="/">← Voltar</Link>
         </Button>
-        <h1 className="text-2xl font-semibold text-foreground">
+        <h1 className="font-display text-2xl font-semibold text-foreground">
           Solicitar autorização
         </h1>
         <p className="text-sm text-muted-foreground">
@@ -313,7 +314,7 @@ export function SolicitarPage() {
           </div>
         </form>
       </Form>
-    </div>
+    </PageContainer>
   );
 }
 
