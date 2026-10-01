@@ -51,7 +51,7 @@ export function HomePage() {
   const [mostrarVideo, setMostrarVideo] = useState(false);
 
   return (
-    <PageContainer largura="pagina" className="sm:py-14">
+    <PageContainer className="sm:py-14">
       <header className="mb-16 grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-rio uppercase">

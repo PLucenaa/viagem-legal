@@ -51,7 +51,7 @@ export function PainelListaPage() {
   }, [status, pagina]);
 
   return (
-    <PageContainer largura="tabela">
+    <PageContainer>
       <header className="mb-6">
         <h1 className="font-display text-3xl font-semibold tracking-tight">
           Painel interno — Solicitações
