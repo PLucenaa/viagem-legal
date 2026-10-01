@@ -8,8 +8,8 @@ export interface NavItem {
 
 export const HEADER = {
   /** Título completo — só exibido em telas ≥ sm (senão quebra linha demais). */
-  marcaLinha1: "Autorização de Viagem para Crianças e Adolescentes",
-  marcaLinha2: "Divisão de Proteção das Varas da Infância e Juventude de Boa Vista/RR",
+  marcaLinha1: "Viagem Legal",
+  marcaLinha2:"Sistema de Autorização de Viagem para Crianças e Adolescentes",
   /** Versão curta pra caber numa linha só no header mobile. */
   marcaCurta: "Viagem Legal",
   logoAlt: "Poder Judiciário do Estado de Roraima",

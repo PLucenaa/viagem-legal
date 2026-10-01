@@ -19,17 +19,15 @@ export function AppHeader() {
           className="flex min-w-0 flex-1 items-center gap-3"
           onClick={() => setMenuAberto(false)}
         >
-          {/* A logo original tem o símbolo em cima e o texto "Poder Judiciário"
-              embaixo, ambos ocupando a largura toda — por isso o recorte é
-              largo e baixo (não quadrado), só pra mostrar o símbolo. */}
-          <span className="flex h-10 w-[5.75rem] shrink-0 items-start justify-center overflow-hidden sm:h-11 sm:w-24">
-            <img
-              src={logoTjrr}
-              alt=""
-              aria-hidden
-              className="h-auto w-full shrink-0 object-cover object-top"
-            />
-          </span>
+          {/* Logo completa (símbolo + "Poder Judiciário do Estado de
+              Roraima"), como no tjrr-certidoes-web: largura fixa e altura
+              automática — o header cresce pra acompanhar. */}
+          <img
+            src={logoTjrr}
+            alt=""
+            aria-hidden
+            className="h-auto w-24 shrink-0 object-contain sm:w-28"
+          />
 
           {/* Abaixo de sm não cabe o título completo em uma linha — usa a
               marca curta pra não quebrar e estourar a altura do header. */}
