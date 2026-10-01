@@ -8,6 +8,8 @@ import luarr.viagemlegal.dto.response.SolicitacaoResumoResponse;
 import luarr.viagemlegal.service.SolicitacaoService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -18,8 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Endpoints do painel do analista: listar, ver detalhe e mudar status.
- * A identidade do analista virá do token do Keycloak (a integrar depois);
- * por ora os campos de auditoria são passados de forma neutra.
+ * Exigem token do Keycloak com role ANALISTA ou ADMIN (ver SecurityConfig);
+ * a identidade do analista vem do próprio token.
  */
 @RestController
 @RequestMapping("/api/analista/solicitacoes")
@@ -48,11 +50,13 @@ public class SolicitacaoAnalistaController {
     /** Aplica uma transição de status. */
     @PatchMapping("/{id}/status")
     public SolicitacaoResponse mudarStatus(@PathVariable Long id,
-                                           @Valid @RequestBody MudancaStatusRequest request) {
-        // TODO: extrair analistaId/analistaNome do JWT do Keycloak quando integrado.
-        String analistaId = null;
-        String analistaNome = null;
+                                           @Valid @RequestBody MudancaStatusRequest request,
+                                           @AuthenticationPrincipal Jwt jwt) {
+        String analistaNome = jwt.getClaimAsString("name");
+        if (analistaNome == null || analistaNome.isBlank()) {
+            analistaNome = jwt.getClaimAsString("preferred_username");
+        }
         return service.mudarStatus(
-                id, request.novoStatus(), request.observacao(), analistaId, analistaNome);
+                id, request.novoStatus(), request.observacao(), jwt.getSubject(), analistaNome);
     }
 }

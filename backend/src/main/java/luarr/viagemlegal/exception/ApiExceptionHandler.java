@@ -26,6 +26,16 @@ public class ApiExceptionHandler {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
+    @ExceptionHandler(AutenticacaoException.class)
+    public ProblemDetail handleAutenticacao(AutenticacaoException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ProblemDetail handleAcessoNegado(AcessoNegadoException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+    }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ProblemDetail handleArquivoGrande(MaxUploadSizeExceededException ex) {
         return ProblemDetail.forStatusAndDetail(

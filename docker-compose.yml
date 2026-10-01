@@ -1,5 +1,9 @@
-# Ambiente local de desenvolvimento — apenas o banco.
-# Keycloak será adicionado depois, num serviço próprio.
+# Ambiente local de desenvolvimento — banco + Keycloak.
+#
+# Keycloak: http://localhost:8180 (admin/admin no realm "master").
+# O realm "viagem-legal" é importado de keycloak/viagem-legal-realm.json na
+# primeira subida; keycloak/viagem-legal-users-0.json cria o usuário de teste
+# analista/analista (role ANALISTA) — só pra dev, NÃO importe em produção.
 #
 #   docker compose up -d
 #   docker compose down          (mantém os dados)
@@ -25,5 +29,22 @@ services:
       timeout: 5s
       retries: 5
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    container_name: viagemlegal-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "8180:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+      # Monta em data/ (e não data/h2): a pasta já existe na imagem com dono
+      # "keycloak", então o volume herda a permissão. Em data/h2 o Docker cria
+      # como root e o Keycloak não consegue gravar o banco H2.
+      - viagemlegal-keycloak:/opt/keycloak/data
+
 volumes:
   viagemlegal-pgdata:
+  viagemlegal-keycloak:

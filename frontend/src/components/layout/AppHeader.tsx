@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { LogIn, LogOut, Menu, X } from "lucide-react";
 import logoTjrr from "@/assets/logo_tjrr_white.png";
-import { HEADER } from "@/lib/header";
+import { HEADER, NAV_PAINEL } from "@/lib/header";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
+  const { podeAcessarPainel, usuario, sair } = useAuth();
+  const nav = podeAcessarPainel ? [...HEADER.nav, NAV_PAINEL] : HEADER.nav;
 
   return (
     <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden">
@@ -48,7 +51,7 @@ export function AppHeader() {
           className="hidden items-center gap-1 lg:flex"
           aria-label="Principal"
         >
-          {HEADER.nav.map((item) => (
+          {nav.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -63,6 +66,25 @@ export function AppHeader() {
               {item.label}
             </NavLink>
           ))}
+          {usuario ? (
+            <button
+              type="button"
+              onClick={sair}
+              title={`Sair (${usuario.nome})`}
+              className="ml-1 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper"
+            >
+              <LogOut className="size-3.5" aria-hidden />
+              Sair
+            </button>
+          ) : (
+            <Link
+              to="/acesso-interno"
+              className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-paper/30 px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper"
+            >
+              <LogIn className="size-3.5" aria-hidden />
+              Entrar
+            </Link>
+          )}
         </nav>
 
         <button
@@ -84,7 +106,7 @@ export function AppHeader() {
           aria-label="Mobile"
         >
           <ul className="flex flex-col gap-1">
-            {HEADER.nav.map((item) => (
+            {nav.map((item) => (
               <li key={item.to}>
                 <NavLink
                   to={item.to}
@@ -101,6 +123,29 @@ export function AppHeader() {
                 </NavLink>
               </li>
             ))}
+            {usuario ? (
+              <li>
+                <button
+                  type="button"
+                  onClick={sair}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-left text-xs font-medium tracking-wide text-paper/80 uppercase hover:bg-paper/10"
+                >
+                  <LogOut className="size-4" aria-hidden />
+                  Sair ({usuario.nome})
+                </button>
+              </li>
+            ) : (
+              <li>
+                <Link
+                  to="/acesso-interno"
+                  onClick={() => setMenuAberto(false)}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-xs font-medium tracking-wide text-paper/80 uppercase hover:bg-paper/10"
+                >
+                  <LogIn className="size-4" aria-hidden />
+                  Entrar
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       )}

@@ -37,6 +37,18 @@ app:
   cors:
     # Frontend e backend são apps/domínios separados no Coolify.
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,https://viagem-legal.luarr.cloud}
+  keycloak:
+    # Keycloak próprio (Coolify em produção, docker-compose localmente).
+    # O issuer validado nos tokens é <url>/realms/<realm> — precisa bater com
+    # o KC_HOSTNAME configurado no Keycloak.
+    url: ${KEYCLOAK_URL:http://localhost:8180}
+    realm: ${KEYCLOAK_REALM:viagem-legal}
+    # Client "de audiência": o token só é aceito se tiver este client no "aud"
+    # (mapper de audiência configurado no client do frontend).
+    client-id: ${KEYCLOAK_CLIENT_ID:viagem-legal-backend}
+    # Client público usado no login do navegador; as roles (ANALISTA/ADMIN)
+    # ficam cadastradas nele.
+    frontend-client-id: ${KEYCLOAK_FRONTEND_CLIENT_ID:viagem-legal-frontend}
 
 server:
   port: 8080

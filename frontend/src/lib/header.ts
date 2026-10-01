@@ -21,3 +21,6 @@ export const HEADER = {
     { to: "/perguntas", label: "Perguntas" },
   ] satisfies NavItem[],
 } as const;
+
+/** Item extra exibido no menu só pra quem está logado com role do painel. */
+export const NAV_PAINEL: NavItem = { to: "/painel", label: "Painel" };
