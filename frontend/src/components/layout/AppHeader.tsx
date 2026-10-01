@@ -12,7 +12,7 @@ export function AppHeader() {
   const nav = podeAcessarPainel ? [...HEADER.nav, NAV_PAINEL] : HEADER.nav;
 
   return (
-    <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden">
+    <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden [&_:is(a,button):focus-visible]:outline-none [&_:is(a,button):focus-visible]:ring-2 [&_:is(a,button):focus-visible]:ring-lavrado">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:min-h-20 sm:gap-4 sm:px-6">
         <Link
           to="/"

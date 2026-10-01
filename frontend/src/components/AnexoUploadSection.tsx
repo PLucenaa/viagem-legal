@@ -3,8 +3,6 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -12,8 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Campo } from "@/components/form/Campo";
+import { UploadArquivo } from "@/components/form/UploadArquivo";
 import { anexoUrl, ApiError, enviarAnexoPorProtocolo } from "@/lib/api";
-import { ANEXO_ACCEPT, ANEXO_DICA, TIPO_ANEXO_LABEL, validarAnexo } from "@/lib/tipoAnexo";
+import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
 import type { AnexoResponse, TipoAnexo } from "@/lib/types";
 
 interface AnexoUploadSectionProps {
@@ -87,53 +87,37 @@ export function AnexoUploadSection({
         )}
 
         {podeEnviar && (
-          <div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1fr_auto]">
-            <div>
-              <Label>Tipo de documento</Label>
-              <Select
-                value={tipoAnexo}
-                onValueChange={(v) => setTipoAnexo(v as TipoAnexo)}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(TIPO_ANEXO_LABEL) as TipoAnexo[]).map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {TIPO_ANEXO_LABEL[t]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Arquivo</Label>
-              <Input
-                type="file"
-                accept={ANEXO_ACCEPT}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (!f) {
-                    setArquivo(null);
-                    return;
-                  }
-                  const erro = validarAnexo(f);
-                  if (erro) {
-                    toast.error(erro);
-                    e.target.value = "";
-                    setArquivo(null);
-                    return;
-                  }
-                  setArquivo(f);
-                }}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">{ANEXO_DICA}</p>
-            </div>
-            <div className="flex items-end">
-              <Button disabled={!arquivo || enviando} onClick={enviar}>
-                {enviando ? "Enviando..." : "Enviar"}
+          <div className="grid gap-5 border-t pt-5">
+            <Campo rotulo="Tipo de documento" className="sm:max-w-sm">
+              {(id) => (
+                <Select
+                  value={tipoAnexo}
+                  onValueChange={(v) => setTipoAnexo(v as TipoAnexo)}
+                >
+                  <SelectTrigger id={id} className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TIPO_ANEXO_LABEL) as TipoAnexo[]).map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {TIPO_ANEXO_LABEL[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </Campo>
+            <UploadArquivo
+              rotulo={TIPO_ANEXO_LABEL[tipoAnexo]}
+              arquivo={arquivo}
+              onSelecionar={setArquivo}
+              onRemover={() => setArquivo(null)}
+            />
+            {arquivo && (
+              <Button className="justify-self-end" disabled={enviando} onClick={enviar}>
+                {enviando ? "Enviando..." : "Enviar documento"}
               </Button>
-            </div>
+            )}
           </div>
         )}
       </CardContent>

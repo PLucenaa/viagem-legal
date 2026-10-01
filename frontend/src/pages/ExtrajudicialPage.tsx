@@ -11,15 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { Campo, GrupoCampo } from "@/components/form/Campo";
+import { InputMascara } from "@/components/form/InputMascara";
+import { OpcoesRadio } from "@/components/form/OpcoesRadio";
+import { mascaraCpf, mascaraTelefone, mascaraUf } from "@/lib/mascaras";
 import type { TipoResponsavel } from "@/lib/types";
 
 interface PessoaForm {
@@ -91,6 +87,114 @@ const QUALIDADE_LABEL: Record<TipoResponsavel, string> = {
   GUARDIAO: "Guardião(ã)",
 };
 
+const OPCOES_QUALIDADE = (Object.keys(QUALIDADE_LABEL) as TipoResponsavel[]).map(
+  (q) => ({ valor: q, rotulo: QUALIDADE_LABEL[q] }),
+);
+
+const OPCOES_ACOMPANHAMENTO = [
+  {
+    valor: "acompanhado",
+    rotulo: "Acompanhada(o) de outra pessoa",
+    descricao: "Viaja com um adulto que não é o pai nem a mãe",
+  },
+  {
+    valor: "desacompanhado",
+    rotulo: "Desacompanhada(o)",
+    descricao: "Viaja sozinha(o)",
+  },
+] as const;
+
+const GRADE = "grid gap-x-4 gap-y-5 sm:grid-cols-2";
+
+/** Campos de documento/endereço/contato comuns a responsável e acompanhante. */
+function DadosPessoais<T extends AcompanhanteForm>({
+  valor,
+  onChange,
+}: {
+  valor: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <>
+      <Campo rotulo="CPF">
+        {(id) => (
+          <InputMascara
+            id={id}
+            value={valor.cpf}
+            onChange={(cpf) => onChange({ ...valor, cpf })}
+            mascara={mascaraCpf}
+            inputMode="numeric"
+            placeholder="000.000.000-00"
+          />
+        )}
+      </Campo>
+      <Campo rotulo="Telefone">
+        {(id) => (
+          <InputMascara
+            id={id}
+            value={valor.telefone}
+            onChange={(telefone) => onChange({ ...valor, telefone })}
+            mascara={mascaraTelefone}
+            inputMode="tel"
+            placeholder="(95) 99999-9999"
+          />
+        )}
+      </Campo>
+      <Campo rotulo="Cédula de identidade (RG)">
+        {(id) => (
+          <Input
+            id={id}
+            value={valor.cedulaIdentidade}
+            onChange={(e) => onChange({ ...valor, cedulaIdentidade: e.target.value })}
+          />
+        )}
+      </Campo>
+      <Campo rotulo="Expedida por">
+        {(id) => (
+          <Input
+            id={id}
+            value={valor.expedidoPor}
+            placeholder="Ex.: SSP/RR"
+            onChange={(e) => onChange({ ...valor, expedidoPor: e.target.value })}
+          />
+        )}
+      </Campo>
+      <Campo rotulo="Endereço de domicílio" className="sm:col-span-2">
+        {(id) => (
+          <Input
+            id={id}
+            value={valor.endereco}
+            placeholder="Rua, número, bairro"
+            onChange={(e) => onChange({ ...valor, endereco: e.target.value })}
+          />
+        )}
+      </Campo>
+      <div className="grid grid-cols-[1fr_5rem] gap-x-4 sm:col-span-2 sm:grid-cols-[1fr_8rem]">
+        <Campo rotulo="Cidade">
+          {(id) => (
+            <Input
+              id={id}
+              value={valor.cidade}
+              onChange={(e) => onChange({ ...valor, cidade: e.target.value })}
+            />
+          )}
+        </Campo>
+        <Campo rotulo="UF">
+          {(id) => (
+            <InputMascara
+              id={id}
+              value={valor.uf}
+              onChange={(uf) => onChange({ ...valor, uf })}
+              mascara={mascaraUf}
+              placeholder="RR"
+            />
+          )}
+        </Campo>
+      </div>
+    </>
+  );
+}
+
 function formatarData(iso: string): string {
   if (!iso) return "____/____/______";
   const [ano, mes, dia] = iso.split("-");
@@ -107,74 +211,27 @@ function PessoaCampos({
   titulo: string;
 }) {
   return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <p className="text-sm font-medium">{titulo}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <Label>Nome completo</Label>
-          <Input
-            value={valor.nomeCompleto}
-            onChange={(e) => onChange({ ...valor, nomeCompleto: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Qualidade</Label>
-          <Select
+    <div className="space-y-5 rounded-lg border p-4 sm:p-5">
+      <p className="text-sm font-semibold">{titulo}</p>
+      <div className={GRADE}>
+        <Campo rotulo="Nome completo" className="sm:col-span-2">
+          {(id) => (
+            <Input
+              id={id}
+              value={valor.nomeCompleto}
+              onChange={(e) => onChange({ ...valor, nomeCompleto: e.target.value })}
+            />
+          )}
+        </Campo>
+        <GrupoCampo rotulo="Qualidade" className="sm:col-span-2">
+          <OpcoesRadio
+            opcoes={OPCOES_QUALIDADE}
             value={valor.qualidade}
-            onValueChange={(v) => onChange({ ...valor, qualidade: v as TipoResponsavel })}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {(Object.keys(QUALIDADE_LABEL) as TipoResponsavel[]).map((q) => (
-                <SelectItem key={q} value={q}>
-                  {QUALIDADE_LABEL[q]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <Label>CPF</Label>
-          <Input value={valor.cpf} onChange={(e) => onChange({ ...valor, cpf: e.target.value })} />
-        </div>
-        <div>
-          <Label>Cédula de identidade (RG)</Label>
-          <Input
-            value={valor.cedulaIdentidade}
-            onChange={(e) => onChange({ ...valor, cedulaIdentidade: e.target.value })}
+            onValueChange={(qualidade) => onChange({ ...valor, qualidade })}
+            className="sm:grid-cols-4"
           />
-        </div>
-        <div>
-          <Label>Expedida por</Label>
-          <Input
-            value={valor.expedidoPor}
-            onChange={(e) => onChange({ ...valor, expedidoPor: e.target.value })}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Label>Endereço de domicílio</Label>
-          <Input
-            value={valor.endereco}
-            onChange={(e) => onChange({ ...valor, endereco: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Cidade</Label>
-          <Input value={valor.cidade} onChange={(e) => onChange({ ...valor, cidade: e.target.value })} />
-        </div>
-        <div>
-          <Label>UF</Label>
-          <Input value={valor.uf} onChange={(e) => onChange({ ...valor, uf: e.target.value })} />
-        </div>
-        <div>
-          <Label>Telefone</Label>
-          <Input
-            value={valor.telefone}
-            onChange={(e) => onChange({ ...valor, telefone: e.target.value })}
-          />
-        </div>
+        </GrupoCampo>
+        <DadosPessoais valor={valor} onChange={onChange} />
       </div>
     </div>
   );
@@ -188,57 +245,17 @@ function AcompanhanteCampos({
   onChange: (v: AcompanhanteForm) => void;
 }) {
   return (
-    <div className="space-y-3 rounded-lg border p-4">
-      <p className="text-sm font-medium">Pessoa que vai acompanhar</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <Label>Nome completo</Label>
+    <div className={GRADE}>
+      <Campo rotulo="Nome completo" className="sm:col-span-2">
+        {(id) => (
           <Input
+            id={id}
             value={valor.nomeCompleto}
             onChange={(e) => onChange({ ...valor, nomeCompleto: e.target.value })}
           />
-        </div>
-        <div>
-          <Label>CPF</Label>
-          <Input value={valor.cpf} onChange={(e) => onChange({ ...valor, cpf: e.target.value })} />
-        </div>
-        <div>
-          <Label>Cédula de identidade (RG)</Label>
-          <Input
-            value={valor.cedulaIdentidade}
-            onChange={(e) => onChange({ ...valor, cedulaIdentidade: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Expedida por</Label>
-          <Input
-            value={valor.expedidoPor}
-            onChange={(e) => onChange({ ...valor, expedidoPor: e.target.value })}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Label>Endereço de domicílio</Label>
-          <Input
-            value={valor.endereco}
-            onChange={(e) => onChange({ ...valor, endereco: e.target.value })}
-          />
-        </div>
-        <div>
-          <Label>Cidade</Label>
-          <Input value={valor.cidade} onChange={(e) => onChange({ ...valor, cidade: e.target.value })} />
-        </div>
-        <div>
-          <Label>UF</Label>
-          <Input value={valor.uf} onChange={(e) => onChange({ ...valor, uf: e.target.value })} />
-        </div>
-        <div>
-          <Label>Telefone</Label>
-          <Input
-            value={valor.telefone}
-            onChange={(e) => onChange({ ...valor, telefone: e.target.value })}
-          />
-        </div>
-      </div>
+        )}
+      </Campo>
+      <DadosPessoais valor={valor} onChange={onChange} />
     </div>
   );
 }
@@ -282,26 +299,21 @@ export function ExtrajudicialPage() {
       </header>
 
       {modo === "form" && (
-        <div className="space-y-4 print:hidden">
+        <div className="space-y-6 print:hidden">
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
                 Como a criança/adolescente vai viajar?
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex gap-3">
-              <Button
-                variant={acompanhado ? "default" : "outline"}
-                onClick={() => setAcompanhado(true)}
-              >
-                Acompanhada(o) de outra pessoa
-              </Button>
-              <Button
-                variant={!acompanhado ? "default" : "outline"}
-                onClick={() => setAcompanhado(false)}
-              >
-                Desacompanhada(o)
-              </Button>
+            <CardContent>
+              <OpcoesRadio
+                aria-label="Como a criança/adolescente vai viajar"
+                opcoes={OPCOES_ACOMPANHAMENTO}
+                value={acompanhado ? "acompanhado" : "desacompanhado"}
+                onValueChange={(v) => setAcompanhado(v === "acompanhado")}
+                className="grid-cols-1 sm:grid-cols-2"
+              />
             </CardContent>
           </Card>
 
@@ -312,16 +324,17 @@ export function ExtrajudicialPage() {
                 Informe os dados de quem está autorizando a viagem.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               <PessoaCampos
                 titulo="Responsável 1"
                 valor={responsavel1}
                 onChange={setResponsavel1}
               />
 
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input
                   type="checkbox"
+                  className="size-4 accent-primary"
                   checked={temSegundoResponsavel}
                   onChange={(e) => setTemSegundoResponsavel(e.target.checked)}
                 />
@@ -344,51 +357,65 @@ export function ExtrajudicialPage() {
                 Criança ou adolescente
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div className="sm:col-span-2">
-                <Label>Nome completo</Label>
-                <Input
-                  value={menor.nomeCompleto}
-                  onChange={(e) =>
-                    setMenor({ ...menor, nomeCompleto: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Data de nascimento</Label>
-                <Input
-                  type="date"
-                  value={menor.dataNascimento}
-                  onChange={(e) =>
-                    setMenor({ ...menor, dataNascimento: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Naturalidade</Label>
-                <Input
-                  value={menor.naturalidade}
-                  onChange={(e) =>
-                    setMenor({ ...menor, naturalidade: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>Cédula de identidade / Certidão</Label>
-                <Input
-                  value={menor.cedulaIdentidade}
-                  onChange={(e) =>
-                    setMenor({ ...menor, cedulaIdentidade: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label>CPF (se houver)</Label>
-                <Input
-                  value={menor.cpf}
-                  onChange={(e) => setMenor({ ...menor, cpf: e.target.value })}
-                />
-              </div>
+            <CardContent className={GRADE}>
+              <Campo rotulo="Nome completo" className="sm:col-span-2">
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={menor.nomeCompleto}
+                    onChange={(e) =>
+                      setMenor({ ...menor, nomeCompleto: e.target.value })
+                    }
+                  />
+                )}
+              </Campo>
+              <Campo rotulo="Data de nascimento">
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="date"
+                    value={menor.dataNascimento}
+                    onChange={(e) =>
+                      setMenor({ ...menor, dataNascimento: e.target.value })
+                    }
+                  />
+                )}
+              </Campo>
+              <Campo rotulo="Naturalidade">
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={menor.naturalidade}
+                    placeholder="Ex.: Boa Vista/RR"
+                    onChange={(e) =>
+                      setMenor({ ...menor, naturalidade: e.target.value })
+                    }
+                  />
+                )}
+              </Campo>
+              <Campo rotulo="Cédula de identidade / Certidão">
+                {(id) => (
+                  <Input
+                    id={id}
+                    value={menor.cedulaIdentidade}
+                    onChange={(e) =>
+                      setMenor({ ...menor, cedulaIdentidade: e.target.value })
+                    }
+                  />
+                )}
+              </Campo>
+              <Campo rotulo="CPF (se houver)">
+                {(id) => (
+                  <InputMascara
+                    id={id}
+                    value={menor.cpf}
+                    onChange={(cpf) => setMenor({ ...menor, cpf })}
+                    mascara={mascaraCpf}
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                  />
+                )}
+              </Campo>
             </CardContent>
           </Card>
 
@@ -414,31 +441,38 @@ export function ExtrajudicialPage() {
                 anos — mas é melhor deixar explícito.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-3">
-              <div>
-                <Label>Válida até</Label>
-                <Input
-                  type="date"
-                  value={validoAte}
-                  onChange={(e) => setValidoAte(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>Local da assinatura</Label>
-                <Input value={local} onChange={(e) => setLocal(e.target.value)} />
-              </div>
-              <div>
-                <Label>Data da assinatura</Label>
-                <Input
-                  type="date"
-                  value={dataAssinatura}
-                  onChange={(e) => setDataAssinatura(e.target.value)}
-                />
-              </div>
+            <CardContent className="grid gap-x-4 gap-y-5 sm:grid-cols-3">
+              <Campo rotulo="Válida até">
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="date"
+                    value={validoAte}
+                    onChange={(e) => setValidoAte(e.target.value)}
+                  />
+                )}
+              </Campo>
+              <Campo rotulo="Local da assinatura">
+                {(id) => (
+                  <Input id={id} value={local} onChange={(e) => setLocal(e.target.value)} />
+                )}
+              </Campo>
+              <Campo rotulo="Data da assinatura">
+                {(id) => (
+                  <Input
+                    id={id}
+                    type="date"
+                    value={dataAssinatura}
+                    onChange={(e) => setDataAssinatura(e.target.value)}
+                  />
+                )}
+              </Campo>
             </CardContent>
           </Card>
 
-          <Button onClick={() => setModo("previa")}>Gerar documento</Button>
+          <div className="flex justify-end">
+            <Button onClick={() => setModo("previa")}>Gerar documento</Button>
+          </div>
         </div>
       )}
 

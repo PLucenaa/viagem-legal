@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useForm } from "react-hook-form";
+import { useForm, type FieldPath, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { FieldError, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,24 +29,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { Campo } from "@/components/form/Campo";
+import { UploadArquivo } from "@/components/form/UploadArquivo";
+import { InputMascara } from "@/components/form/InputMascara";
+import { OpcoesRadio, type OpcaoRadio } from "@/components/form/OpcoesRadio";
 import { criarSolicitacao, enviarAnexoPorProtocolo } from "@/lib/api";
 import { ApiError } from "@/lib/api";
 import { buscarCep } from "@/lib/cep";
 import {
+  cepValido,
+  mascaraCep,
+  mascaraCpf,
+  mascaraNumero,
+  mascaraTelefone,
+  mascaraUf,
+} from "@/lib/mascaras";
+import {
   solicitacaoSchema,
   type SolicitacaoFormValues,
 } from "@/lib/solicitacaoSchema";
-import { ANEXO_ACCEPT, ANEXO_DICA, TIPO_ANEXO_LABEL, validarAnexo } from "@/lib/tipoAnexo";
+import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
 import type { SolicitacaoRequest, TipoAnexo } from "@/lib/types";
 
-const DOCS = [
-  { v: "RG", l: "RG" },
-  { v: "CNH", l: "CNH" },
-  { v: "PASSAPORTE", l: "Passaporte" },
-  { v: "CERTIDAO_NASCIMENTO", l: "Certidão de Nascimento" },
-] as const;
+type Valores = SolicitacaoFormValues;
+type Campos = FieldPath<Valores>;
+
+const TIPOS_AUTORIZACAO: OpcaoRadio<Valores["tipoAutorizacao"]>[] = [
+  { valor: "NACIONAL", rotulo: "Viagem nacional", descricao: "Dentro do Brasil" },
+  { valor: "INTERNACIONAL", rotulo: "Viagem internacional", descricao: "Para fora do país" },
+  { valor: "HOSPEDAGEM", rotulo: "Hospedagem", descricao: "Hotel, pousada ou similar" },
+];
+
+const TIPOS_RESPONSAVEL: OpcaoRadio<Valores["tipoResponsavel"]>[] = [
+  { valor: "MAE", rotulo: "Mãe" },
+  { valor: "PAI", rotulo: "Pai" },
+  { valor: "TUTOR", rotulo: "Tutor(a)" },
+  { valor: "GUARDIAO", rotulo: "Guardião(ã)" },
+];
+
+const DOCS: OpcaoRadio<Valores["menor"]["tipoDocumento"]>[] = [
+  { valor: "RG", rotulo: "RG" },
+  { valor: "CNH", rotulo: "CNH" },
+  { valor: "PASSAPORTE", rotulo: "Passaporte" },
+  { valor: "CERTIDAO_NASCIMENTO", rotulo: "Certidão de nascimento" },
+];
 
 interface DocumentoStaged {
   tipo: TipoAnexo;
@@ -70,8 +99,6 @@ export function SolicitarPage() {
   const [enviando, setEnviando] = useState(false);
   const [documentos, setDocumentos] = useState<DocumentoStaged[]>([]);
   const [tipoStaging, setTipoStaging] = useState<TipoAnexo>(TIPOS_EXTRAS[0]);
-  const [arquivoStaging, setArquivoStaging] = useState<File | null>(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
   const [buscandoCep, setBuscandoCep] = useState(false);
 
   const form = useForm<SolicitacaoFormValues>({
@@ -176,11 +203,8 @@ export function SolicitarPage() {
     }
   }
 
-  function adicionarDocumento() {
-    if (!arquivoStaging) return;
-    setDocumentos((docs) => [...docs, { tipo: tipoStaging, arquivo: arquivoStaging }]);
-    setArquivoStaging(null);
-    setFileInputKey((k) => k + 1);
+  function adicionarDocumento(arquivo: File) {
+    setDocumentos((docs) => [...docs, { tipo: tipoStaging, arquivo }]);
   }
 
   function removerDocumento(alvo: DocumentoStaged) {
@@ -218,59 +242,20 @@ export function SolicitarPage() {
             <CardHeader>
               <CardTitle className="text-base">Tipo de autorização</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <FormField
-                control={form.control}
+            <CardContent className="grid gap-6">
+              <RadioField
+                form={form}
                 name="tipoAutorizacao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Autorização</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="NACIONAL">Viagem nacional</SelectItem>
-                        <SelectItem value="INTERNACIONAL">
-                          Viagem internacional
-                        </SelectItem>
-                        <SelectItem value="HOSPEDAGEM">Hospedagem</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Autorização"
+                opcoes={TIPOS_AUTORIZACAO}
+                className="grid-cols-1 sm:grid-cols-3"
               />
-              <FormField
-                control={form.control}
+              <RadioField
+                form={form}
                 name="tipoResponsavel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Você é</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="PAI">Pai</SelectItem>
-                        <SelectItem value="MAE">Mãe</SelectItem>
-                        <SelectItem value="TUTOR">Tutor(a)</SelectItem>
-                        <SelectItem value="GUARDIAO">Guardião(ã)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                label="Você é"
+                opcoes={TIPOS_RESPONSAVEL}
+                className="sm:grid-cols-4"
               />
             </CardContent>
           </Card>
@@ -280,14 +265,14 @@ export function SolicitarPage() {
             <CardHeader>
               <CardTitle className="text-base">Dados do responsável</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <TextField form={form} name="requerente.nomeCompleto" label="Nome completo" />
-              <TextField form={form} name="requerente.cpf" label="CPF" />
-              <DocSelect form={form} name="requerente.tipoDocumento" label="Documento" />
+            <CardContent className={GRADE}>
+              <TextField form={form} name="requerente.nomeCompleto" label="Nome completo" className="sm:col-span-2" autoComplete="name" />
+              <TextField form={form} name="requerente.cpf" label="CPF" mascara={mascaraCpf} inputMode="numeric" placeholder="000.000.000-00" />
+              <TextField form={form} name="requerente.telefone" label="Telefone" mascara={mascaraTelefone} inputMode="tel" placeholder="(95) 99999-9999" autoComplete="tel" />
+              <RadioField form={form} name="requerente.tipoDocumento" label="Documento de identificação" opcoes={DOCS} className="sm:grid-cols-4" wrapperClassName="sm:col-span-2" />
               <TextField form={form} name="requerente.numeroDocumento" label="Nº do documento" />
-              <TextField form={form} name="requerente.orgaoExpedidor" label="Órgão expedidor" />
-              <TextField form={form} name="requerente.telefone" label="Telefone" />
-              <TextField form={form} name="requerente.email" label="E-mail (opcional)" />
+              <TextField form={form} name="requerente.orgaoExpedidor" label="Órgão expedidor (opcional)" placeholder="Ex.: SSP/RR" />
+              <TextField form={form} name="requerente.email" label="E-mail (opcional)" type="email" autoComplete="email" />
               <TextField form={form} name="requerente.profissao" label="Profissão (opcional)" />
               <DocumentoInline
                 tipo="DOC_REQUERENTE"
@@ -303,20 +288,28 @@ export function SolicitarPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Endereço</CardTitle>
+              <CardDescription>
+                Digite o CEP para preencher o endereço automaticamente.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
+            <CardContent className="grid gap-x-4 gap-y-5 sm:grid-cols-6">
               <FormField
                 control={form.control}
                 name="requerente.endereco.cep"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="sm:col-span-2">
                     <FormLabel>CEP</FormLabel>
                     <FormControl>
-                      <Input
+                      <InputMascara
                         {...field}
-                        onBlur={(e) => {
-                          field.onBlur();
-                          preencherEnderecoPorCep(e.target.value);
+                        mascara={mascaraCep}
+                        inputMode="numeric"
+                        placeholder="00000-000"
+                        autoComplete="postal-code"
+                        onChange={(valor) => {
+                          const completou = cepValido(valor) && !cepValido(field.value);
+                          field.onChange(valor);
+                          if (completou) void preencherEnderecoPorCep(valor);
                         }}
                       />
                     </FormControl>
@@ -329,14 +322,15 @@ export function SolicitarPage() {
                   </FormItem>
                 )}
               />
-              <TextField form={form} name="requerente.endereco.logradouro" label="Logradouro" />
-              <TextField form={form} name="requerente.endereco.numero" label="Número" />
-              <TextField form={form} name="requerente.endereco.bairro" label="Bairro" />
-              <TextField form={form} name="requerente.endereco.cidade" label="Cidade" />
-              <TextField form={form} name="requerente.endereco.uf" label="UF" />
+              <TextField form={form} name="requerente.endereco.logradouro" label="Logradouro" className="sm:col-span-4" />
+              <TextField form={form} name="requerente.endereco.numero" label="Número" className="sm:col-span-2" />
+              <TextField form={form} name="requerente.endereco.bairro" label="Bairro" className="sm:col-span-4" />
+              <TextField form={form} name="requerente.endereco.cidade" label="Cidade" className="sm:col-span-4" />
+              <TextField form={form} name="requerente.endereco.uf" label="UF" mascara={mascaraUf} className="sm:col-span-2" />
               <DocumentoInline
                 tipo="COMPROVANTE_RESIDENCIA"
                 label="Comprovante de residência"
+                className="sm:col-span-6"
                 documentos={documentos}
                 onAnexar={anexarTipoFixo}
                 onRemover={removerTipoFixo}
@@ -349,12 +343,12 @@ export function SolicitarPage() {
             <CardHeader>
               <CardTitle className="text-base">Dados do menor</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <TextField form={form} name="menor.nomeCompleto" label="Nome completo" />
+            <CardContent className={GRADE}>
+              <TextField form={form} name="menor.nomeCompleto" label="Nome completo" className="sm:col-span-2" />
               <TextField form={form} name="menor.dataNascimento" label="Data de nascimento" type="date" />
-              <DocSelect form={form} name="menor.tipoDocumento" label="Documento" />
+              <TextField form={form} name="menor.naturalidade" label="Naturalidade (opcional)" placeholder="Ex.: Boa Vista/RR" />
+              <RadioField form={form} name="menor.tipoDocumento" label="Documento de identificação" opcoes={DOCS} className="sm:grid-cols-4" wrapperClassName="sm:col-span-2" />
               <TextField form={form} name="menor.numeroDocumento" label="Nº do documento" />
-              <TextField form={form} name="menor.naturalidade" label="Naturalidade (opcional)" />
               <DocumentoInline
                 tipo="DOC_MENOR"
                 label="Foto/cópia do documento do menor"
@@ -370,13 +364,13 @@ export function SolicitarPage() {
             <CardHeader>
               <CardTitle className="text-base">Dados da viagem</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 sm:grid-cols-2">
-              <TextField form={form} name="dadosViagem.destino" label="Destino" />
+            <CardContent className={GRADE}>
+              <TextField form={form} name="dadosViagem.destino" label="Destino" className="sm:col-span-2" placeholder="Cidade/UF ou país" />
               <TextField form={form} name="dadosViagem.dataIda" label="Data de ida" type="date" />
               <TextField form={form} name="dadosViagem.dataVolta" label="Data de volta (opcional)" type="date" />
-              <TextField form={form} name="dadosViagem.meioTransporte" label="Meio de transporte (opcional)" />
+              <TextField form={form} name="dadosViagem.meioTransporte" label="Meio de transporte (opcional)" placeholder="Ex.: avião, ônibus" />
               {ehHospedagem && (
-                <TextField form={form} name="dadosViagem.validadeDias" label="Validade (dias)" type="number" />
+                <TextField form={form} name="dadosViagem.validadeDias" label="Validade (dias)" mascara={mascaraNumero} inputMode="numeric" />
               )}
               <DocumentoInline
                 tipo="PASSAGEM"
@@ -396,11 +390,11 @@ export function SolicitarPage() {
                   Responsável pela hospedagem
                 </CardTitle>
               </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <TextField form={form} name="responsavel.nomeCompleto" label="Nome completo" />
-                <TextField form={form} name="responsavel.cpf" label="CPF" />
+              <CardContent className={GRADE}>
+                <TextField form={form} name="responsavel.nomeCompleto" label="Nome completo" className="sm:col-span-2" />
+                <TextField form={form} name="responsavel.cpf" label="CPF" mascara={mascaraCpf} inputMode="numeric" placeholder="000.000.000-00" />
                 <TextField form={form} name="responsavel.numeroDocumento" label="Nº do documento" />
-                <TextField form={form} name="responsavel.grauParentesco" label="Grau de parentesco" />
+                <TextField form={form} name="responsavel.grauParentesco" label="Grau de parentesco" placeholder="Ex.: avó, tio" />
               </CardContent>
             </Card>
           )}
@@ -409,19 +403,18 @@ export function SolicitarPage() {
               junto com a solicitação, ao clicar em "Enviar solicitação". */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Documentos</CardTitle>
+              <CardTitle className="text-base">Outros documentos</CardTitle>
+              <CardDescription>
+                Opcional. Você também pode enviar depois pela tela de
+                acompanhamento.
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {documentosExtras.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Nenhum documento extra adicionado ainda. Você também pode
-                  enviar depois pela tela de acompanhamento.
-                </p>
-              ) : (
-                <ul className="space-y-1 text-sm">
+            <CardContent className="grid gap-5">
+              {documentosExtras.length > 0 && (
+                <ul className="divide-y rounded-md border text-sm">
                   {documentosExtras.map((doc, i) => (
-                    <li key={i} className="flex items-center justify-between gap-2">
-                      <span>
+                    <li key={i} className="flex items-center justify-between gap-2 py-1 pr-1 pl-3">
+                      <span className="truncate">
                         {TIPO_ANEXO_LABEL[doc.tipo]} — {doc.arquivo.name}
                       </span>
                       <Button
@@ -437,65 +430,34 @@ export function SolicitarPage() {
                 </ul>
               )}
 
-              <div className="grid gap-3 border-t pt-4 sm:grid-cols-[1fr_1fr_auto]">
-                <div>
-                  <Label>Tipo de documento</Label>
+              <Campo rotulo="Tipo de documento" className="sm:max-w-sm">
+                {(id) => (
                   <Select
                     value={tipoStaging}
                     onValueChange={(v) => setTipoStaging(v as TipoAnexo)}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger id={id} className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {TIPOS_EXTRAS
-                        .map((t) => (
-                          <SelectItem key={t} value={t}>
-                            {TIPO_ANEXO_LABEL[t]}
-                          </SelectItem>
-                        ))}
+                      {TIPOS_EXTRAS.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {TIPO_ANEXO_LABEL[t]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div>
-                  <Label>Arquivo</Label>
-                  <Input
-                    key={fileInputKey}
-                    type="file"
-                    accept={ANEXO_ACCEPT}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (!f) {
-                        setArquivoStaging(null);
-                        return;
-                      }
-                      const erro = validarAnexo(f);
-                      if (erro) {
-                        toast.error(erro);
-                        setFileInputKey((k) => k + 1);
-                        setArquivoStaging(null);
-                        return;
-                      }
-                      setArquivoStaging(f);
-                    }}
-                  />
-                  <p className="mt-1 text-xs text-muted-foreground">{ANEXO_DICA}</p>
-                </div>
-                <div className="flex items-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={!arquivoStaging}
-                    onClick={adicionarDocumento}
-                  >
-                    Adicionar
-                  </Button>
-                </div>
-              </div>
+                )}
+              </Campo>
+              <UploadArquivo
+                rotulo={TIPO_ANEXO_LABEL[tipoStaging]}
+                arquivo={null}
+                onSelecionar={adicionarDocumento}
+              />
             </CardContent>
           </Card>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button asChild variant="outline" type="button">
               <Link to="/">Cancelar</Link>
             </Button>
@@ -511,104 +473,112 @@ export function SolicitarPage() {
 
 // --- Campos reutilizáveis ---
 
+/** Grade padrão dos cartões do formulário: 2 colunas a partir de sm. */
+const GRADE = "grid gap-x-4 gap-y-5 sm:grid-cols-2";
+
 /** Anexo de um tipo fixo, embutido na própria seção do formulário a que pertence. */
 function DocumentoInline({
   tipo,
   label,
+  className = "sm:col-span-2",
   documentos,
   onAnexar,
   onRemover,
 }: {
   tipo: TipoAnexo;
   label: string;
+  className?: string;
   documentos: DocumentoStaged[];
   onAnexar: (tipo: TipoAnexo, arquivo: File) => void;
   onRemover: (tipo: TipoAnexo) => void;
 }) {
   const existente = documentos.find((d) => d.tipo === tipo);
   return (
-    <div className="grid gap-2 sm:col-span-2">
-      <Label>{label}</Label>
-      {existente ? (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-input px-3 py-2 text-sm">
-          <span className="truncate">{existente.arquivo.name}</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => onRemover(tipo)}
-          >
-            Trocar
-          </Button>
-        </div>
-      ) : (
-        <>
-          <Input
-            type="file"
-            accept={ANEXO_ACCEPT}
-            onChange={(e) => {
-              const arquivo = e.target.files?.[0];
-              if (!arquivo) return;
-              const erro = validarAnexo(arquivo);
-              if (erro) {
-                toast.error(erro);
-                e.target.value = "";
-                return;
-              }
-              onAnexar(tipo, arquivo);
-            }}
-          />
-          <p className="text-xs text-muted-foreground">{ANEXO_DICA}</p>
-        </>
-      )}
-    </div>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function TextField({ form, name, label, type = "text" }: any) {
-  return (
-    <FormField
-      control={form.control}
-      name={name}
-      render={({ field }: any) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <FormControl>
-            <Input type={type} {...field} />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      )}
+    <UploadArquivo
+      rotulo={label}
+      arquivo={existente?.arquivo ?? null}
+      onSelecionar={(arquivo) => onAnexar(tipo, arquivo)}
+      onRemover={() => onRemover(tipo)}
+      className={className}
     />
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function DocSelect({ form, name, label }: any) {
+interface TextFieldProps {
+  form: UseFormReturn<Valores>;
+  name: Campos;
+  label: string;
+  type?: string;
+  className?: string;
+  placeholder?: string;
+  autoComplete?: string;
+  inputMode?: ComponentProps<"input">["inputMode"];
+  /** Máscara de lib/mascaras.ts aplicada a cada digitação. */
+  mascara?: (valor: string) => string;
+}
+
+function TextField({ form, name, label, className, mascara, ...inputProps }: TextFieldProps) {
   return (
     <FormField
       control={form.control}
       name={name}
-      render={({ field }: any) => (
-        <FormItem>
-          <FormLabel>{label}</FormLabel>
-          <Select onValueChange={field.onChange} defaultValue={field.value}>
+      render={({ field }) => {
+        const value = (field.value as string | undefined) ?? "";
+        return (
+          <FormItem className={className}>
+            <FormLabel>{label}</FormLabel>
             <FormControl>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+              {mascara ? (
+                <InputMascara {...field} {...inputProps} value={value} mascara={mascara} />
+              ) : (
+                <Input {...field} {...inputProps} value={value} />
+              )}
             </FormControl>
-            <SelectContent>
-              {DOCS.map((d) => (
-                <SelectItem key={d.v} value={d.v}>
-                  {d.l}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
+    />
+  );
+}
+
+interface RadioFieldProps<T extends string> {
+  form: UseFormReturn<Valores>;
+  name: Campos;
+  label: string;
+  opcoes: OpcaoRadio<T>[];
+  /** Colunas das opções (ex.: "sm:grid-cols-3"). */
+  className?: string;
+  /** Classe do bloco inteiro dentro da grade do cartão (ex.: "sm:col-span-2"). */
+  wrapperClassName?: string;
+}
+
+function RadioField<T extends string>({
+  form,
+  name,
+  label,
+  opcoes,
+  className,
+  wrapperClassName,
+}: RadioFieldProps<T>) {
+  return (
+    <FormField
+      control={form.control}
+      name={name}
+      render={({ field, fieldState }) => (
+        <FieldSet className={wrapperClassName} data-invalid={fieldState.invalid}>
+          <FieldLegend variant="label" className="mb-2">
+            {label}
+          </FieldLegend>
+          <OpcoesRadio
+            opcoes={opcoes}
+            value={field.value as T}
+            onValueChange={field.onChange}
+            aria-invalid={fieldState.invalid}
+            className={className}
+          />
+          <FieldError errors={[fieldState.error]} />
+        </FieldSet>
       )}
     />
   );
