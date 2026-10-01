@@ -9,7 +9,6 @@ import { PainelListaPage } from "@/pages/painel/PainelListaPage";
 import { PainelDetalhePage } from "@/pages/painel/PainelDetalhePage";
 import { SolicitarPage } from "@/pages/SolicitarPage";
 import { AcompanharPage } from "@/pages/AcompanharPage";
-import { PerguntasPage } from "@/pages/PerguntasPage";
 import { AcessoInternoPage } from "@/pages/AcessoInternoPage";
 import { CallbackKeycloakPage } from "@/pages/CallbackKeycloakPage";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -28,7 +27,6 @@ export default function App() {
               <Route path="/triagem/extrajudicial" element={<ExtrajudicialPage />} />
               <Route path="/solicitar" element={<SolicitarPage />} />
               <Route path="/acompanhar" element={<AcompanharPage />} />
-              <Route path="/perguntas" element={<PerguntasPage />} />
               <Route path="/acesso-interno" element={<AcessoInternoPage />} />
               <Route path="/callback-keycloak" element={<CallbackKeycloakPage />} />
               <Route element={<RotaInterna />}>

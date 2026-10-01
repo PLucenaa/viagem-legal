@@ -18,7 +18,6 @@ export const HEADER = {
     { to: "/triagem", label: "Preciso de autorização?" },
     { to: "/solicitar", label: "Solicitar" },
     { to: "/acompanhar", label: "Acompanhar" },
-    { to: "/perguntas", label: "Perguntas" },
   ] satisfies NavItem[],
 } as const;
 
