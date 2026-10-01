@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Check, FileCheck2, RotateCcw, X } from "lucide-react";
 import gsap from "gsap";
@@ -17,6 +17,7 @@ import { Signpost } from "@/components/Signpost";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { INFO_SERVICO } from "@/lib/faq";
+import { cn } from "@/lib/utils";
 import type {
   CaminhoTriagem,
   PassoTriagem,
@@ -54,15 +55,20 @@ export function TriagemPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const inicializado = useRef(false);
-  const conteudoRef = useRef<HTMLDivElement>(null);
+  // Número da pergunta que está na tela — só muda quando a próxima chega,
+  // pra não trocar o número enquanto a pergunta antiga ainda aparece.
+  const [numeroPergunta, setNumeroPergunta] = useState(1);
   const docsRef = useRef<HTMLUListElement>(null);
   const tituloRef = useRef<HTMLHeadingElement>(null);
 
-  function avaliar(payload: TriagemRequest) {
+  function avaliar(payload: TriagemRequest, numero: number) {
     setCarregando(true);
     setErro(null);
     avaliarTriagem(payload)
-      .then((res) => setResultado(res))
+      .then((res) => {
+        setResultado(res);
+        setNumeroPergunta(numero);
+      })
       .catch((e) => {
         setErro(
           e instanceof ApiError
@@ -95,7 +101,7 @@ export function TriagemPage() {
     setRespostas(novasRespostas);
     setHistorico((h) => [...h, campo]);
     jaRespondeu.current = true;
-    avaliar(novasRespostas);
+    avaliar(novasRespostas, historico.length + 2);
   }
 
   /** Desfaz a última resposta e volta à pergunta anterior. */
@@ -106,28 +112,18 @@ export function TriagemPage() {
     delete novasRespostas[ultimo];
     setRespostas(novasRespostas);
     setHistorico((h) => h.slice(0, -1));
-    avaliar(novasRespostas);
+    avaliar(novasRespostas, historico.length);
   }
 
   function reiniciar() {
     setRespostas({});
     setHistorico([]);
-    avaliar({});
+    avaliar({}, 1);
   }
 
   const reduzirMovimento =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  // Anima a troca de pergunta/resultado a cada resposta.
-  useLayoutEffect(() => {
-    if (!conteudoRef.current || reduzirMovimento || carregando) return;
-    gsap.fromTo(
-      conteudoRef.current,
-      { opacity: 0, y: 16 },
-      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
-    );
-  }, [erro, carregando, resultado, reduzirMovimento]);
 
   // Revela a checklist de documentos em cascata quando o resultado sai.
   useEffect(() => {
@@ -155,8 +151,6 @@ export function TriagemPage() {
     tituloRef.current?.focus();
   }, [carregando]);
 
-  const numeroPergunta = historico.length + 1;
-
   return (
     <PageContainer>
       <PageHeader
@@ -166,7 +160,14 @@ export function TriagemPage() {
         centralizado
       />
 
-      <div ref={conteudoRef} className="mx-auto max-w-2xl">
+      {/* Pergunta numa coluna estreita; o resultado (placa + texto lado a
+          lado) precisa de mais largura. */}
+      <div
+        className={cn(
+          "mx-auto",
+          resultado?.concluido && !erro ? "max-w-4xl" : "max-w-2xl",
+        )}
+      >
       {erro && (
         <Card className="border-destructive/40">
           <CardContent className="pt-6">
@@ -174,7 +175,7 @@ export function TriagemPage() {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => avaliar(respostas)}
+              onClick={() => avaliar(respostas, historico.length + 1)}
             >
               Tentar novamente
             </Button>
@@ -182,10 +183,15 @@ export function TriagemPage() {
         </Card>
       )}
 
-      {!erro && (carregando || (resultado && !resultado.concluido)) && (
+      {!erro && (!resultado || !resultado.concluido) && (
         <Card aria-busy={carregando}>
-          <CardHeader className="gap-3 sm:px-8">
-            {carregando ? (
+          <CardHeader
+            className={cn(
+              "gap-3 transition-opacity sm:px-8",
+              carregando && resultado && "opacity-60",
+            )}
+          >
+            {!resultado ? (
               <>
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-8 w-full" />
@@ -248,115 +254,128 @@ export function TriagemPage() {
         </Card>
       )}
 
-      {!erro && !carregando && resultado?.concluido && (
-        <Card className="overflow-hidden pt-0">
-          <div className="flex justify-center bg-secondary/50 pt-6">
-            <Signpost ativo={resultado.caminho} className="max-w-[260px]" />
-          </div>
-          <CardHeader>
-            <h2
-              ref={tituloRef}
-              tabIndex={-1}
-              className="font-display text-xl leading-none font-semibold outline-none"
-            >
-              {resultado.caminho && TITULO_CAMINHO[resultado.caminho]}
-            </h2>
-            <CardDescription>
-              Fundamento: {resultado.fundamentoLegal} da Resolução CNJ nº
-              295/2019
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {resultado.mensagem}
-            </p>
+      {!erro && resultado?.concluido && (
+        <Card
+          aria-busy={carregando}
+          className={cn(
+            "gap-0 overflow-hidden py-0 transition-opacity",
+            carregando && "opacity-60",
+          )}
+        >
+          {/* Placa à esquerda (em cima no celular), texto à direita. */}
+          <div className="grid md:grid-cols-[minmax(0,17rem)_1fr]">
+            <div className="flex items-center justify-center bg-secondary/50 px-6 pt-6 md:pb-6">
+              <Signpost ativo={resultado.caminho} className="w-full max-w-[240px]" />
+            </div>
 
-            {resultado.documentosNecessarios &&
-              resultado.documentosNecessarios.length > 0 && (
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                    <FileCheck2 className="size-4 text-primary" />
-                    Documentos necessários
-                  </p>
-                  <ul
-                    ref={docsRef}
-                    className="space-y-1.5 text-sm text-muted-foreground"
-                  >
-                    {resultado.documentosNecessarios.map((doc) => (
-                      <li key={doc} className="flex gap-2">
-                        <span aria-hidden className="text-primary">
-                          •
-                        </span>
-                        {doc}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <div className="grid content-start gap-5 p-6 sm:p-8">
+              <div className="grid gap-2">
+                <h2
+                  ref={tituloRef}
+                  tabIndex={-1}
+                  className="font-display text-2xl leading-tight font-semibold text-balance outline-none"
+                >
+                  {resultado.caminho && TITULO_CAMINHO[resultado.caminho]}
+                </h2>
+                <CardDescription>
+                  Fundamento: {resultado.fundamentoLegal} da Resolução CNJ nº
+                  295/2019
+                </CardDescription>
+              </div>
+
+              <p className="text-pretty text-muted-foreground">
+                {resultado.mensagem}
+              </p>
+
+              {resultado.documentosNecessarios &&
+                resultado.documentosNecessarios.length > 0 && (
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                      <FileCheck2 className="size-4 text-primary" aria-hidden />
+                      Documentos necessários
+                    </p>
+                    <ul
+                      ref={docsRef}
+                      className="space-y-2 text-sm text-muted-foreground"
+                    >
+                      {resultado.documentosNecessarios.map((doc) => (
+                        <li key={doc} className="flex gap-2">
+                          <span aria-hidden className="text-primary">
+                            •
+                          </span>
+                          {doc}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {resultado.caminho === "DISPENSA" && (
+                <p className="text-sm text-pretty">
+                  Este aviso não substitui nenhum documento de viagem — ele só
+                  informa que, com os documentos acima, não é necessária
+                  nenhuma autorização adicional para essa viagem.
+                </p>
               )}
 
-            {resultado.caminho === "DISPENSA" && (
-              <p className="text-sm">
-                Este aviso não substitui nenhum documento de viagem — ele só
-                informa que, com os documentos acima, não é necessária
-                nenhuma autorização adicional para essa viagem.
-              </p>
-            )}
+              {resultado.caminho === "EXTRAJUDICIAL" && (
+                <>
+                  <p className="text-sm text-pretty">
+                    Você pode preencher agora o modelo de autorização (a
+                    assinatura ainda precisa ter a firma reconhecida em
+                    cartório, por semelhança ou autenticidade). Em caso de
+                    dúvida, fale com a{" "}
+                    <span className="font-medium text-foreground">
+                      {INFO_SERVICO.orgao}
+                    </span>{" "}
+                    — WhatsApp: {INFO_SERVICO.whatsapp} · E-mail:{" "}
+                    {INFO_SERVICO.email}
+                  </p>
+                  <Button asChild size="lg" className="justify-self-start">
+                    <Link
+                      to="/triagem/extrajudicial"
+                      state={{
+                        acompanhado:
+                          respostas.viajaComPessoaAutorizadaPeloResponsavel ===
+                          true,
+                      }}
+                    >
+                      Preencher documento agora
+                    </Link>
+                  </Button>
+                </>
+              )}
 
-            {resultado.caminho === "EXTRAJUDICIAL" && (
-              <div className="space-y-3 text-sm">
-                <p>
-                  Você pode preencher agora o modelo de autorização (a
-                  assinatura ainda precisa ter a firma reconhecida em
-                  cartório, por semelhança ou autenticidade). Em caso de
-                  dúvida, fale com a{" "}
-                  <span className="font-medium text-foreground">
-                    {INFO_SERVICO.orgao}
-                  </span>{" "}
-                  — WhatsApp: {INFO_SERVICO.whatsapp} · E-mail:{" "}
-                  {INFO_SERVICO.email}
-                </p>
-                <Button asChild>
-                  <Link
-                    to="/triagem/extrajudicial"
-                    state={{
-                      acompanhado:
-                        respostas.viajaComPessoaAutorizadaPeloResponsavel ===
-                        true,
-                    }}
-                  >
-                    Preencher documento agora
-                  </Link>
+              {resultado.caminho === "UNIDADE_COMPETENTE" && (
+                <Button asChild size="lg" className="justify-self-start">
+                  <Link to="/solicitar">Iniciar solicitação</Link>
                 </Button>
-              </div>
-            )}
-
-            {resultado.caminho === "UNIDADE_COMPETENTE" && (
-              <Button asChild>
-                <Link to="/solicitar">Iniciar solicitação</Link>
-              </Button>
-            )}
-
-            <div className="flex flex-wrap gap-2 border-t pt-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-muted-foreground"
-                onClick={voltarPergunta}
-              >
-                <ArrowLeft className="size-4" aria-hidden />
-                Mudar a última resposta
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-2 text-muted-foreground"
-                onClick={reiniciar}
-              >
-                <RotateCcw className="size-4" aria-hidden />
-                Refazer a triagem
-              </Button>
+              )}
             </div>
-          </CardContent>
+          </div>
+
+          <CardFooter className="flex-wrap gap-2 border-t py-4 sm:px-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground"
+              disabled={carregando}
+              onClick={voltarPergunta}
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Mudar a última resposta
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground"
+              disabled={carregando}
+              onClick={reiniciar}
+            >
+              <RotateCcw className="size-4" aria-hidden />
+              Refazer a triagem
+            </Button>
+          </CardFooter>
         </Card>
       )}
       </div>
