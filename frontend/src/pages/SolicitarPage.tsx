@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Campo } from "@/components/form/Campo";
 import { UploadArquivo } from "@/components/form/UploadArquivo";
 import { InputMascara } from "@/components/form/InputMascara";
@@ -223,17 +224,11 @@ export function SolicitarPage() {
 
   return (
     <PageContainer>
-      <div className="mb-6">
-        <Button asChild variant="link" size="sm" className="px-0">
-          <Link to="/">← Voltar</Link>
-        </Button>
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Solicitar autorização
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Atendimento exclusivo para residentes em Boa Vista/RR.
-        </p>
-      </div>
+      <PageHeader
+        atual="Solicitar"
+        titulo="Solicitar autorização"
+        descricao="Atendimento exclusivo para residentes em Boa Vista/RR."
+      />
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

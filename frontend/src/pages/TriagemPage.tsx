@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, FileCheck2, X } from "lucide-react";
+import { ArrowLeft, Check, FileCheck2, RotateCcw, X } from "lucide-react";
 import gsap from "gsap";
 
 import { Button } from "@/components/ui/button";
@@ -8,12 +8,14 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { ApiError, avaliarTriagem } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Signpost } from "@/components/Signpost";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { INFO_SERVICO } from "@/lib/faq";
 import type {
   CaminhoTriagem,
@@ -44,6 +46,8 @@ const TITULO_CAMINHO: Record<CaminhoTriagem, string> = {
 
 export function TriagemPage() {
   const [respostas, setRespostas] = useState<TriagemRequest>({});
+  // Ordem em que as perguntas foram respondidas — permite desfazer a última.
+  const [historico, setHistorico] = useState<(keyof TriagemRequest)[]>([]);
   const [resultado, setResultado] = useState<TriagemResultadoResponse | null>(
     null,
   );
@@ -52,6 +56,7 @@ export function TriagemPage() {
   const inicializado = useRef(false);
   const conteudoRef = useRef<HTMLDivElement>(null);
   const docsRef = useRef<HTMLUListElement>(null);
+  const tituloRef = useRef<HTMLHeadingElement>(null);
 
   function avaliar(payload: TriagemRequest) {
     setCarregando(true);
@@ -88,27 +93,45 @@ export function TriagemPage() {
     const campo = CAMPO_POR_PASSO[resultado.proximoPasso];
     const novasRespostas = { ...respostas, [campo]: valor };
     setRespostas(novasRespostas);
+    setHistorico((h) => [...h, campo]);
+    jaRespondeu.current = true;
+    avaliar(novasRespostas);
+  }
+
+  /** Desfaz a última resposta e volta à pergunta anterior. */
+  function voltarPergunta() {
+    const ultimo = historico.at(-1);
+    if (!ultimo) return;
+    const novasRespostas = { ...respostas };
+    delete novasRespostas[ultimo];
+    setRespostas(novasRespostas);
+    setHistorico((h) => h.slice(0, -1));
     avaliar(novasRespostas);
   }
 
   function reiniciar() {
     setRespostas({});
+    setHistorico([]);
     avaliar({});
   }
 
+  const reduzirMovimento =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   // Anima a troca de pergunta/resultado a cada resposta.
   useLayoutEffect(() => {
-    if (!conteudoRef.current) return;
+    if (!conteudoRef.current || reduzirMovimento || carregando) return;
     gsap.fromTo(
       conteudoRef.current,
       { opacity: 0, y: 16 },
       { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
     );
-  }, [erro, carregando, resultado]);
+  }, [erro, carregando, resultado, reduzirMovimento]);
 
   // Revela a checklist de documentos em cascata quando o resultado sai.
   useEffect(() => {
-    if (resultado?.concluido && docsRef.current) {
+    if (resultado?.concluido && docsRef.current && !reduzirMovimento) {
       gsap.fromTo(
         docsRef.current.children,
         { opacity: 0, x: -10 },
@@ -122,27 +145,28 @@ export function TriagemPage() {
         },
       );
     }
-  }, [resultado]);
+  }, [resultado, reduzirMovimento]);
+
+  // Depois de responder (ou voltar), leva o foco à pergunta/resultado novo.
+  // Na primeira pergunta não: o foco fica onde o navegador deixou ao abrir.
+  const jaRespondeu = useRef(false);
+  useEffect(() => {
+    if (carregando || !jaRespondeu.current) return;
+    tituloRef.current?.focus();
+  }, [carregando]);
+
+  const numeroPergunta = historico.length + 1;
 
   return (
     <PageContainer>
-      <header className="mb-8">
-        <p className="text-xs font-semibold tracking-[0.14em] text-rio uppercase">
-          Assistente de triagem
-        </p>
-        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-          Preciso de autorização de viagem?
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Responda algumas perguntas simples para descobrir se a viagem
-          nacional da criança ou adolescente exige autorização.
-        </p>
-        <Button asChild variant="link" className="mt-2 px-0">
-          <Link to="/">← Voltar</Link>
-        </Button>
-      </header>
+      <PageHeader
+        atual="Preciso de autorização?"
+        titulo="Preciso de autorização de viagem?"
+        descricao="Responda algumas perguntas simples para descobrir se a viagem nacional da criança ou do adolescente exige autorização."
+        centralizado
+      />
 
-      <div ref={conteudoRef}>
+      <div ref={conteudoRef} className="mx-auto max-w-2xl">
       {erro && (
         <Card className="border-destructive/40">
           <CardContent className="pt-6">
@@ -158,41 +182,85 @@ export function TriagemPage() {
         </Card>
       )}
 
-      {!erro && carregando && (
-        <p className="text-muted-foreground">Carregando…</p>
-      )}
-
-      {!erro && !carregando && resultado && !resultado.concluido && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">
-              {resultado.pergunta}
-            </CardTitle>
+      {!erro && (carregando || (resultado && !resultado.concluido)) && (
+        <Card aria-busy={carregando}>
+          <CardHeader className="gap-3 sm:px-8">
+            {carregando ? (
+              <>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-2/3" />
+                <span className="sr-only">Carregando a pergunta…</span>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Pergunta {numeroPergunta}
+                </p>
+                {/* Recebe o foco ao avançar/voltar (tabIndex -1), como no
+                    Questionnaire do shadcn: o leitor de tela lê a pergunta
+                    nova e o Tab segue direto pras respostas. */}
+                <h2
+                  ref={tituloRef}
+                  tabIndex={-1}
+                  className="font-display text-2xl leading-tight font-semibold text-balance outline-none"
+                >
+                  {resultado?.pergunta}
+                </h2>
+              </>
+            )}
           </CardHeader>
-          <CardContent className="flex gap-3">
-            <Button className="gap-2" onClick={() => responder(true)}>
-              <Check className="size-4" /> Sim
+
+          <CardContent className="grid grid-cols-2 gap-3 sm:px-8">
+            <Button
+              size="lg"
+              className="h-14 gap-2 text-base"
+              disabled={carregando}
+              onClick={() => responder(true)}
+            >
+              <Check className="size-5" aria-hidden /> Sim
             </Button>
             <Button
+              size="lg"
               variant="outline"
-              className="gap-2"
+              className="h-14 gap-2 text-base"
+              disabled={carregando}
               onClick={() => responder(false)}
             >
-              <X className="size-4" /> Não
+              <X className="size-5" aria-hidden /> Não
             </Button>
           </CardContent>
+
+          {historico.length > 0 && (
+            <CardFooter className="border-t sm:px-8">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 gap-2 text-muted-foreground"
+                disabled={carregando}
+                onClick={voltarPergunta}
+              >
+                <ArrowLeft className="size-4" aria-hidden />
+                Pergunta anterior
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       )}
 
       {!erro && !carregando && resultado?.concluido && (
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden pt-0">
           <div className="flex justify-center bg-secondary/50 pt-6">
             <Signpost ativo={resultado.caminho} className="max-w-[260px]" />
           </div>
           <CardHeader>
-            <CardTitle className="font-display text-lg">
+            <h2
+              ref={tituloRef}
+              tabIndex={-1}
+              className="font-display text-xl leading-none font-semibold outline-none"
+            >
               {resultado.caminho && TITULO_CAMINHO[resultado.caminho]}
-            </CardTitle>
+            </h2>
             <CardDescription>
               Fundamento: {resultado.fundamentoLegal} da Resolução CNJ nº
               295/2019
@@ -268,8 +336,23 @@ export function TriagemPage() {
               </Button>
             )}
 
-            <div>
-              <Button variant="link" className="px-0" onClick={reiniciar}>
+            <div className="flex flex-wrap gap-2 border-t pt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={voltarPergunta}
+              >
+                <ArrowLeft className="size-4" aria-hidden />
+                Mudar a última resposta
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-2 text-muted-foreground"
+                onClick={reiniciar}
+              >
+                <RotateCcw className="size-4" aria-hidden />
                 Refazer a triagem
               </Button>
             </div>

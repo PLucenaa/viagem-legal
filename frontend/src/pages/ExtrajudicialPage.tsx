@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Campo, GrupoCampo } from "@/components/form/Campo";
 import { InputMascara } from "@/components/form/InputMascara";
 import { OpcoesRadio } from "@/components/form/OpcoesRadio";
@@ -283,20 +284,12 @@ export function ExtrajudicialPage() {
 
   return (
     <PageContainer className="print:max-w-none print:px-0 print:py-0">
-      <header className="mb-8 print:hidden">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Autorização de viagem — documento extrajudicial
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Preencha os dados abaixo para gerar o modelo de autorização
-          (Resolução CNJ nº 295/2019). O documento só terá validade depois de
-          impresso, assinado e com a firma reconhecida em cartório (por
-          semelhança ou autenticidade).
-        </p>
-        <Button asChild variant="link" className="mt-2 px-0">
-          <Link to="/triagem">← Voltar para a triagem</Link>
-        </Button>
-      </header>
+      <PageHeader
+        trilha={[{ rotulo: "Preciso de autorização?", to: "/triagem" }]}
+        atual="Documento extrajudicial"
+        titulo="Autorização de viagem — documento extrajudicial"
+        descricao="Preencha os dados abaixo para gerar o modelo de autorização (Resolução CNJ nº 295/2019). O documento só terá validade depois de impresso, assinado e com a firma reconhecida em cartório (por semelhança ou autenticidade)."
+      />
 
       {modo === "form" && (
         <div className="space-y-6 print:hidden">
