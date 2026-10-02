@@ -133,3 +133,31 @@
     letter-spacing: -0.01em;
   }
 }
+
+/* Placa do resultado da triagem: a seta escolhida balança uma vez ao
+   aparecer, como placa pendurada no poste. */
+@keyframes placa-balanca {
+  0% {
+    transform: rotate(-12deg);
+  }
+  55% {
+    transform: rotate(5deg);
+  }
+  80% {
+    transform: rotate(-2deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.placa-balanca {
+  transform-box: fill-box;
+  animation: placa-balanca 0.8s cubic-bezier(0.25, 0.8, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .placa-balanca {
+    animation: none;
+  }
+}

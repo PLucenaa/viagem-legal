@@ -165,7 +165,7 @@ export function TriagemPage() {
       <div
         className={cn(
           "mx-auto",
-          resultado?.concluido && !erro ? "max-w-4xl" : "max-w-2xl",
+          resultado?.concluido && !erro ? "max-w-5xl" : "max-w-2xl",
         )}
       >
       {erro && (
@@ -263,9 +263,9 @@ export function TriagemPage() {
           )}
         >
           {/* Placa à esquerda (em cima no celular), texto à direita. */}
-          <div className="grid md:grid-cols-[minmax(0,17rem)_1fr]">
-            <div className="flex items-center justify-center bg-secondary/50 px-6 pt-6 md:pb-6">
-              <Signpost ativo={resultado.caminho} className="w-full max-w-[240px]" />
+          <div className="grid md:grid-cols-[minmax(0,24rem)_1fr]">
+            <div className="flex items-center justify-center bg-secondary/50 p-6">
+              <Signpost ativo={resultado.caminho} className="max-w-[320px] md:max-w-none" />
             </div>
 
             <div className="grid content-start gap-5 p-6 sm:p-8">
