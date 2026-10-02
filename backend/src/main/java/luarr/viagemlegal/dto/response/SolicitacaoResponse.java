@@ -25,6 +25,10 @@ public record SolicitacaoResponse(
         DadosViagem dadosViagem,
         List<AnexoResponse> anexos,
         List<HistoricoStatusResponse> historico,
+        /** Cidadão enviou documento depois do pedido de correção. */
+        boolean correcaoRecebida,
+        /** Documentos enviados depois disso são "novos" pro analista. */
+        Instant ultimaMudancaStatusEm,
         String analistaId,
         String analistaNome,
         String observacaoAnalista,

@@ -10,6 +10,8 @@ import java.util.Map;
  */
 public record ContagemPainelResponse(
         Map<StatusSolicitacao, Long> porStatus,
-        long minhasEmAberto
+        long minhasEmAberto,
+        /** Pedidos que voltaram: correção pedida e documento novo enviado. */
+        long correcoesRecebidas
 ) {
 }

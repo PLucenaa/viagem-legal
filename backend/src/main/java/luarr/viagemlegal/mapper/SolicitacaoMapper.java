@@ -85,6 +85,8 @@ public final class SolicitacaoMapper {
                 s.getDadosViagem(),
                 s.getAnexos().stream().map(SolicitacaoMapper::toAnexoResponse).toList(),
                 historicoOrdenado(s),
+                s.isCorrecaoRecebida(),
+                s.getUltimaMudancaStatusEm(),
                 s.getAnalistaId(),
                 s.getAnalistaNome(),
                 s.getObservacaoAnalista(),
@@ -107,6 +109,8 @@ public final class SolicitacaoMapper {
                 s.getAnalistaId(),
                 s.getAnalistaNome(),
                 s.getQuantidadeAnexos() != null ? s.getQuantidadeAnexos() : 0,
+                s.isCorrecaoRecebida(),
+                s.getUltimoAnexoEm(),
                 s.getCriadoEm(),
                 s.getAtualizadoEm(),
                 s.getVersao()

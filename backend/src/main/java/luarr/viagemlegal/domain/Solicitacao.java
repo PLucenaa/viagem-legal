@@ -159,6 +159,14 @@ public class Solicitacao {
     @Formula("(select count(*) from anexo a where a.solicitacao_id = id)")
     private Integer quantidadeAnexos;
 
+    /** Quando chegou o último documento (derivado da tabela de anexos). */
+    @Formula("(select max(a.enviado_em) from anexo a where a.solicitacao_id = id)")
+    private Instant ultimoAnexoEm;
+
+    /** Quando o status mudou pela última vez (derivado do histórico). */
+    @Formula("(select max(h.ocorrido_em) from historico_status h where h.solicitacao_id = id)")
+    private Instant ultimaMudancaStatusEm;
+
     /**
      * Analista responsável (claim "sub" do Keycloak) — quem "assumiu" o pedido.
      * Null enquanto ninguém assumiu.
@@ -178,6 +186,20 @@ public class Solicitacao {
 
     @UpdateTimestamp
     private Instant atualizadoEm;
+
+    /**
+     * O cidadão mandou documento depois do pedido de correção: o pedido
+     * "voltou" e espera o analista. Calculado a partir do histórico e dos
+     * anexos (o registro de verdade), em vez de uma flag guardada que teria
+     * de ser ligada e desligada em sincronia com eles. Some sozinho quando o
+     * analista retoma a análise (nova entrada no histórico).
+     */
+    public boolean isCorrecaoRecebida() {
+        return status == StatusSolicitacao.PENDENTE_CORRECAO
+                && ultimoAnexoEm != null
+                && ultimaMudancaStatusEm != null
+                && ultimoAnexoEm.isAfter(ultimaMudancaStatusEm);
+    }
 
     // --- Helpers de relacionamento (mantêm os dois lados sincronizados) ---
 

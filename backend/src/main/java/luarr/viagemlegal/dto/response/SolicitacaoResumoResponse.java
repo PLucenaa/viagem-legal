@@ -22,6 +22,9 @@ public record SolicitacaoResumoResponse(
         String analistaId,
         String analistaNome,
         int quantidadeAnexos,
+        /** Cidadão enviou documento depois do pedido de correção. */
+        boolean correcaoRecebida,
+        Instant ultimoAnexoEm,
         Instant criadoEm,
         Instant atualizadoEm,
         Long versao

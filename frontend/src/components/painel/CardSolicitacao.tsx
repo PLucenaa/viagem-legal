@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { CalendarClock, MapPin, Paperclip, UserRound } from "lucide-react";
+import { CalendarClock, FileCheck2, MapPin, Paperclip, UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,9 +45,19 @@ export function CardSolicitacao({
       className={cn(
         "relative gap-4 py-5 transition-[border-color,box-shadow]",
         "hover:border-primary/60 hover:shadow-md",
+        s.correcaoRecebida && "border-rio/60",
         "has-[[data-card-link]:focus-visible]:border-ring has-[[data-card-link]:focus-visible]:ring-[3px] has-[[data-card-link]:focus-visible]:ring-ring/50",
       )}
     >
+      {/* O cidadão respondeu ao pedido de correção: o pedido voltou pro
+          analista. Faixa no topo pra se destacar na fila. */}
+      {s.correcaoRecebida && (
+        <p className="-mt-5 flex items-center gap-2 rounded-t-xl bg-rio px-5 py-2 text-xs font-medium text-paper">
+          <FileCheck2 className="size-3.5" aria-hidden />
+          Correção recebida
+          {s.ultimoAnexoEm ? ` ${haQuantoTempo(s.ultimoAnexoEm)}` : ""} — documento novo para conferir
+        </p>
+      )}
       <CardHeader className="gap-3 px-5">
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-medium text-muted-foreground tabular-nums">{s.protocolo}</span>

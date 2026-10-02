@@ -105,6 +105,10 @@ export interface SolicitacaoResponse {
   dadosViagem: DadosViagemRequest;
   anexos: AnexoResponse[];
   historico: HistoricoStatusResponse[];
+  /** Cidadão enviou documento depois do pedido de correção. */
+  correcaoRecebida: boolean;
+  /** Documentos enviados depois disso são "novos" pro analista. */
+  ultimaMudancaStatusEm: string | null;
   analistaId: string | null;
   analistaNome: string | null;
   observacaoAnalista: string | null;
@@ -128,6 +132,9 @@ export interface SolicitacaoResumoResponse {
   analistaId: string | null;
   analistaNome: string | null;
   quantidadeAnexos: number;
+  /** Cidadão enviou documento depois do pedido de correção. */
+  correcaoRecebida: boolean;
+  ultimoAnexoEm: string | null;
   criadoEm: string;
   atualizadoEm: string;
   versao: number;
@@ -136,6 +143,8 @@ export interface SolicitacaoResumoResponse {
 export interface ContagemPainelResponse {
   porStatus: Record<StatusSolicitacao, number>;
   minhasEmAberto: number;
+  /** Pedidos que voltaram: correção pedida e documento novo enviado. */
+  correcoesRecebidas: number;
 }
 
 /** Página no formato padrão do Spring Data. */

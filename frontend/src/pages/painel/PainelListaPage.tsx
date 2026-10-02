@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Inbox, RefreshCw, Search } from "lucide-react";
+import { FileCheck2, Inbox, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -186,6 +186,32 @@ export function PainelListaPage() {
         titulo="Pedidos de autorização"
       />
 
+      {/* Pedidos que voltaram: o cidadão mandou documento depois do pedido
+          de correção. role="status": a atualização automática da fila também
+          é anunciada pelo leitor de tela. */}
+      <div role="status">
+        {!!contagem?.correcoesRecebidas && aba.id !== "correcao" && (
+          <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-rio/40 bg-rio/10 px-4 py-3 text-sm">
+            <FileCheck2 className="size-5 shrink-0 text-rio" aria-hidden />
+            <p className="flex-1">
+              {contagem.correcoesRecebidas === 1
+                ? "1 pedido voltou com correção do cidadão e espera conferência."
+                : `${contagem.correcoesRecebidas} pedidos voltaram com correção do cidadão e esperam conferência.`}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setBuscaDigitada("");
+                atualizarParams({ aba: "correcao", busca: null, minhas: null, pagina: null });
+              }}
+            >
+              Ver {contagem.correcoesRecebidas === 1 ? "pedido" : "pedidos"}
+            </Button>
+          </div>
+        )}
+      </div>
+
       {/* A fila fica dentro do TabsContent: cada aba aponta (aria-controls)
           pro painel com o conteúdo dela. */}
       <Tabs
@@ -200,6 +226,12 @@ export function PainelListaPage() {
                 const total = totalDaAba(a.statuses);
                 return (
                   <TabsTrigger key={a.id} value={a.id} className="gap-1.5">
+                    {a.id === "correcao" && !!contagem?.correcoesRecebidas && (
+                      <>
+                        <span aria-hidden className="size-2 rounded-full bg-rio" />
+                        <span className="sr-only">(com correções recebidas)</span>
+                      </>
+                    )}
                     {a.rotulo}
                     {total !== null && (
                       <span className="rounded-full bg-background/70 px-1.5 text-xs tabular-nums text-muted-foreground">

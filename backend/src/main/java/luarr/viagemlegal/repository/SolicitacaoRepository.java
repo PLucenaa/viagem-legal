@@ -4,7 +4,9 @@ import luarr.viagemlegal.domain.Solicitacao;
 import luarr.viagemlegal.domain.enums.StatusSolicitacao;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.Collection;
@@ -62,6 +64,25 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long> 
     /** Tamanho da fila por status, numa consulta só (abas do painel). */
     @Query("select s.status, count(s) from Solicitacao s group by s.status")
     List<Object[]> contarPorStatus();
+
+    /**
+     * Carrega a solicitação pra anexar documento forçando o incremento da
+     * versão no commit: um anexo novo não altera a linha da solicitação, então
+     * o @Version sozinho não perceberia — e um analista com a tela antiga
+     * poderia decidir sem ver o documento.
+     */
+    @Lock(LockModeType.OPTIMISTIC_FORCE_INCREMENT)
+    @Query("select s from Solicitacao s where s.id = :id")
+    Optional<Solicitacao> findByIdParaAnexar(Long id);
+
+    /** Pedidos em correção que já receberam documento novo (ver Solicitacao.isCorrecaoRecebida). */
+    @Query("""
+            select count(s) from Solicitacao s
+            where s.status = :status
+              and (select max(a.enviadoEm) from Anexo a where a.solicitacao = s)
+                > (select max(h.ocorridoEm) from HistoricoStatus h where h.solicitacao = s)
+            """)
+    long contarCorrecoesRecebidas(StatusSolicitacao status);
 
     long countByAnalistaIdAndStatusIn(String analistaId, Collection<StatusSolicitacao> statuses);
 

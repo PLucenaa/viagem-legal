@@ -19,9 +19,17 @@ function formatarTamanho(bytes: number): string {
 export function DocumentosPainel({ solicitacao }: { solicitacao: SolicitacaoResponse }) {
   const enviados = new Set(solicitacao.anexos.map((a) => a.tipo));
   const faltando = anexosEsperados(solicitacao).filter((t) => !enviados.has(t));
-  const anexos = [...solicitacao.anexos].sort((a, b) =>
-    TIPO_ANEXO_LABEL[a.tipo].localeCompare(TIPO_ANEXO_LABEL[b.tipo], "pt-BR"),
+  // Enviados depois do pedido de correção: é isso que o analista precisa
+  // conferir primeiro, então vêm no topo e marcados como novos.
+  const desde = solicitacao.correcaoRecebida ? solicitacao.ultimaMudancaStatusEm : null;
+  const ehNovo = (enviadoEm: string) =>
+    !!desde && new Date(enviadoEm).getTime() > new Date(desde).getTime();
+  const anexos = [...solicitacao.anexos].sort(
+    (a, b) =>
+      Number(ehNovo(b.enviadoEm)) - Number(ehNovo(a.enviadoEm)) ||
+      TIPO_ANEXO_LABEL[a.tipo].localeCompare(TIPO_ANEXO_LABEL[b.tipo], "pt-BR"),
   );
+  const novos = anexos.filter((a) => ehNovo(a.enviadoEm)).length;
 
   return (
     <Card className="gap-4">
@@ -33,6 +41,8 @@ export function DocumentosPainel({ solicitacao }: { solicitacao: SolicitacaoResp
             : anexos.length === 1
               ? "1 documento enviado."
               : `${anexos.length} documentos enviados.`}
+          {novos > 0 &&
+            ` ${novos === 1 ? "1 chegou" : `${novos} chegaram`} depois do pedido de correção.`}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-[minmax(0,1fr)] gap-4">
@@ -60,7 +70,14 @@ export function DocumentosPainel({ solicitacao }: { solicitacao: SolicitacaoResp
                 <li key={a.id} className="flex items-center gap-3 p-3">
                   <Icone className="size-5 shrink-0 text-muted-foreground" aria-hidden />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{TIPO_ANEXO_LABEL[a.tipo]}</p>
+                    <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                      {TIPO_ANEXO_LABEL[a.tipo]}
+                      {ehNovo(a.enviadoEm) && (
+                        <span className="rounded-full bg-rio px-2 py-0.5 text-[11px] font-medium text-paper">
+                          Novo
+                        </span>
+                      )}
+                    </p>
                     <p className="truncate text-xs text-muted-foreground" title={a.nomeArquivo}>
                       {a.nomeArquivo} · {formatarTamanho(a.tamanhoBytes)} ·{" "}
                       {formatarDataHora(a.enviadoEm)}

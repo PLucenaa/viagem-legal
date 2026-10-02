@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, CircleCheck, UserRound } from "lucide-react";
+import { ArrowRight, CircleCheck, FileCheck2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,11 @@ export function DecisaoPainel({
   buscandoProxima,
 }: DecisaoPainelProps) {
   const idObservacao = useId();
-  const [escolha, setEscolha] = useState<StatusSolicitacao | null>(null);
+  // Se o cidadão já respondeu à correção, o passo natural é retomar a
+  // análise — fica pré-selecionado, mas ainda precisa confirmar.
+  const [escolha, setEscolha] = useState<StatusSolicitacao | null>(
+    s.correcaoRecebida ? "EM_ANALISE" : null,
+  );
   const [observacao, setObservacao] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [confirmandoAssumir, setConfirmandoAssumir] = useState(false);
@@ -171,6 +175,16 @@ export function DecisaoPainel({
       </CardHeader>
 
       <CardContent className="grid gap-5">
+        {s.correcaoRecebida && (
+          <div className="flex gap-3 rounded-lg border border-rio/40 bg-rio/10 p-4 text-sm">
+            <FileCheck2 className="mt-0.5 size-4 shrink-0 text-rio" aria-hidden />
+            <p>
+              O cidadão enviou documento depois do pedido de correção. Confira os
+              documentos marcados como <strong>Novo</strong> e retome a análise.
+            </p>
+          </div>
+        )}
+
         {!aberto && (
           <div className="grid gap-2 text-sm">
             <p>

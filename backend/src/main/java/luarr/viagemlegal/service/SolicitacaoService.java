@@ -174,7 +174,8 @@ public class SolicitacaoService {
         }
         long minhas = analistaId == null ? 0
                 : repository.countByAnalistaIdAndStatusIn(analistaId, STATUS_EM_ABERTO);
-        return new ContagemPainelResponse(porStatus, minhas);
+        return new ContagemPainelResponse(porStatus, minhas,
+                repository.contarCorrecoesRecebidas(StatusSolicitacao.PENDENTE_CORRECAO));
     }
 
     /**
@@ -279,7 +280,9 @@ public class SolicitacaoService {
      */
     @Transactional
     public SolicitacaoResponse anexar(Long id, TipoAnexo tipo, MultipartFile arquivo) {
-        Solicitacao solicitacao = buscarEntidade(id);
+        Solicitacao solicitacao = repository.findByIdParaAnexar(id)
+                .orElseThrow(() -> new SolicitacaoNaoEncontradaException(
+                        "Solicitação não encontrada: " + id));
 
         String caminho = storageService.armazenar(solicitacao.getProtocolo(), arquivo);
 
