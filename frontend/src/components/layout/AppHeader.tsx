@@ -4,16 +4,21 @@ import { LogIn, LogOut, Menu, X } from "lucide-react";
 import logoTjrr from "@/assets/logo_tjrr_white.png";
 import { HEADER, NAV_PAINEL } from "@/lib/header";
 import { useAuth } from "@/lib/auth";
+import { useContagemPainel } from "@/lib/useContagemPainel";
+import { MenuUsuario } from "@/components/layout/MenuUsuario";
+import { NotificacoesPainel } from "@/components/layout/NotificacoesPainel";
 import { cn } from "@/lib/utils";
+import { CONTAINER } from "@/lib/layout";
 
 export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
   const { podeAcessarPainel, usuario, sair } = useAuth();
   const nav = podeAcessarPainel ? [...HEADER.nav, NAV_PAINEL] : HEADER.nav;
+  const contagem = useContagemPainel(podeAcessarPainel);
 
   return (
     <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden [&_:is(a,button):focus-visible]:outline-none [&_:is(a,button):focus-visible]:ring-2 [&_:is(a,button):focus-visible]:ring-lavrado">
-      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:min-h-20 sm:gap-4 sm:px-6">
+      <div className={cn(CONTAINER, "flex min-h-16 items-center justify-between gap-3 py-2 sm:min-h-20 sm:gap-4")}>
         <Link
           to="/"
           className="flex min-w-0 flex-1 items-center gap-3"
@@ -65,15 +70,10 @@ export function AppHeader() {
             </NavLink>
           ))}
           {usuario ? (
-            <button
-              type="button"
-              onClick={sair}
-              title={`Sair (${usuario.nome})`}
-              className="ml-1 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper"
-            >
-              <LogOut className="size-3.5" aria-hidden />
-              Sair
-            </button>
+            <div className="ml-2 flex items-center gap-1 border-l border-paper/20 pl-3">
+              {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
+              <MenuUsuario usuario={usuario} onSair={sair} />
+            </div>
           ) : (
             <Link
               to="/acesso-interno"
@@ -85,16 +85,23 @@ export function AppHeader() {
           )}
         </nav>
 
-        <button
-          type="button"
-          className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10 lg:hidden"
-          aria-expanded={menuAberto}
-          aria-controls="menu-mobile"
-          aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
-          onClick={() => setMenuAberto((v) => !v)}
-        >
-          {menuAberto ? <X className="size-6" /> : <Menu className="size-6" />}
-        </button>
+        <div className="flex items-center gap-1 lg:hidden">
+          {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
+          <button
+            type="button"
+            className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10"
+            aria-expanded={menuAberto}
+            aria-controls="menu-mobile"
+            aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
+            onClick={() => setMenuAberto((v) => !v)}
+          >
+            {menuAberto ? (
+              <X className="size-6" />
+            ) : (
+              <Menu className="size-6" />
+            )}
+          </button>
+        </div>
       </div>
 
       {menuAberto && (

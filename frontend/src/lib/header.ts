@@ -14,7 +14,6 @@ export const HEADER = {
   marcaCurta: "Viagem Legal",
   logoAlt: "Poder Judiciário do Estado de Roraima",
   nav: [
-    { to: "/", label: "Início" },
     { to: "/triagem", label: "Preciso de autorização?" },
     { to: "/solicitar", label: "Solicitar" },
     { to: "/acompanhar", label: "Acompanhar" },
