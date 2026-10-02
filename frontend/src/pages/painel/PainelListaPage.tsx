@@ -183,8 +183,7 @@ export function PainelListaPage() {
     <PageContainer>
       <PageHeader
         atual="Painel"
-        titulo="Solicitações"
-        descricao="Pedidos de autorização de viagem para conferência. Os em aberto aparecem por urgência: viagem mais próxima primeiro."
+        titulo="Pedidos de autorização"
       />
 
       {/* A fila fica dentro do TabsContent: cada aba aponta (aria-controls)

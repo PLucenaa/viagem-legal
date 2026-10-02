@@ -191,7 +191,7 @@ export function AcompanharPage() {
       />
 
       <form
-        className="mb-6 flex gap-2"
+        className="mb-6 flex max-w-xl gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           consultar(protocolo);

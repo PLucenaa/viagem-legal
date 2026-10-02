@@ -6,14 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { emAberto, STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
 import { haQuantoTempo, urgenciaDaViagem, type NivelUrgencia } from "@/lib/urgencia";
-import type { SolicitacaoResumoResponse, TipoAutorizacao } from "@/lib/types";
+import { TIPO_AUTORIZACAO_LABEL } from "@/lib/rotulos";
+import type { SolicitacaoResumoResponse } from "@/lib/types";
 import { cn } from "@/lib/utils";
-
-const TIPO_LABEL: Record<TipoAutorizacao, string> = {
-  NACIONAL: "Viagem nacional",
-  INTERNACIONAL: "Viagem internacional",
-  HOSPEDAGEM: "Hospedagem",
-};
 
 const ESTILO_URGENCIA: Record<NivelUrgencia, string> = {
   critica: "bg-estrada text-paper",
@@ -44,7 +39,15 @@ export function CardSolicitacao({
   const titulo = s.menorNome ?? "Criança/adolescente não informado";
 
   return (
-    <Card className="gap-4 py-5">
+    // O card inteiro é clicável: o link do título se estende por cima dele
+    // (after:inset-0) e os botões do rodapé ficam acima do link (z-10).
+    <Card
+      className={cn(
+        "relative gap-4 py-5 transition-[border-color,box-shadow]",
+        "hover:border-primary/60 hover:shadow-md",
+        "has-[[data-card-link]:focus-visible]:border-ring has-[[data-card-link]:focus-visible]:ring-[3px] has-[[data-card-link]:focus-visible]:ring-ring/50",
+      )}
+    >
       <CardHeader className="gap-3 px-5">
         <div className="flex items-start justify-between gap-2">
           <span className="text-xs font-medium text-muted-foreground tabular-nums">{s.protocolo}</span>
@@ -54,7 +57,8 @@ export function CardSolicitacao({
           <h2 className="font-display text-lg leading-tight font-semibold text-balance">
             <Link
               to={`/painel/${s.id}`}
-              className="rounded-sm outline-none hover:underline focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              data-card-link
+              className="outline-none after:absolute after:inset-0 after:rounded-xl hover:underline"
             >
               {titulo}
             </Link>
@@ -69,7 +73,7 @@ export function CardSolicitacao({
         <p className="flex items-center gap-2 text-muted-foreground">
           <MapPin className="size-4 shrink-0" aria-hidden />
           <span className="truncate">
-            {TIPO_LABEL[s.tipoAutorizacao]}
+            {TIPO_AUTORIZACAO_LABEL[s.tipoAutorizacao]}
             {s.destino ? ` · ${s.destino}` : ""}
           </span>
         </p>
@@ -104,6 +108,7 @@ export function CardSolicitacao({
         {aberto && semResponsavel ? (
           <Button
             size="sm"
+            className="relative z-10"
             disabled={assumindo}
             onClick={() => onAssumir(s)}
             aria-label={`Assumir solicitação ${s.protocolo}`}
@@ -111,7 +116,7 @@ export function CardSolicitacao({
             {assumindo ? "Assumindo…" : "Assumir"}
           </Button>
         ) : (
-          <Button asChild size="sm" variant="outline">
+          <Button asChild size="sm" variant="outline" className="relative z-10">
             <Link to={`/painel/${s.id}`} aria-label={`Abrir solicitação ${s.protocolo}`}>
               Abrir
             </Link>

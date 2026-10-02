@@ -26,3 +26,22 @@ export function validarAnexo(arquivo: File): string | null {
   }
   return null;
 }
+
+/**
+ * Documentos que o analista espera encontrar num pedido — mesma lista que
+ * a triagem pede ao cidadão. O que estiver faltando vira aviso no painel.
+ */
+export function anexosEsperados(s: {
+  tipoResponsavel: string;
+  tipoAutorizacao: string;
+  responsavel: unknown;
+}): TipoAnexo[] {
+  const esperados: TipoAnexo[] = ["DOC_REQUERENTE", "DOC_MENOR", "COMPROVANTE_RESIDENCIA", "PASSAGEM"];
+  if (s.tipoResponsavel === "TUTOR" || s.tipoResponsavel === "GUARDIAO") {
+    esperados.push("TERMO_GUARDA");
+  }
+  if (s.tipoAutorizacao === "HOSPEDAGEM" && s.responsavel) {
+    esperados.push("DOC_ACOMPANHANTE");
+  }
+  return esperados;
+}
