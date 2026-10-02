@@ -11,21 +11,29 @@ import luarr.viagemlegal.domain.enums.TipoResponsavel;
 import luarr.viagemlegal.dto.request.SolicitacaoRequest;
 import luarr.viagemlegal.dto.response.AutorizacaoDocumentoResponse;
 import luarr.viagemlegal.dto.response.ConsultaProtocoloResponse;
+import luarr.viagemlegal.dto.response.ContagemPainelResponse;
 import luarr.viagemlegal.dto.response.SolicitacaoResponse;
 import luarr.viagemlegal.dto.response.SolicitacaoResumoResponse;
+import luarr.viagemlegal.exception.ConflitoException;
 import luarr.viagemlegal.exception.RegraNegocioException;
 import luarr.viagemlegal.exception.SolicitacaoNaoEncontradaException;
 import luarr.viagemlegal.mapper.SolicitacaoMapper;
 import luarr.viagemlegal.repository.SolicitacaoRepository;
 import luarr.viagemlegal.service.storage.StorageService;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Year;
+import java.util.Collection;
+import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -113,24 +121,110 @@ public class SolicitacaoService {
         return SolicitacaoMapper.toAutorizacaoDocumento(s);
     }
 
+    /** Status em que ainda há trabalho a fazer (aba "Em aberto" do painel). */
+    public static final Set<StatusSolicitacao> STATUS_EM_ABERTO = EnumSet.of(
+            StatusSolicitacao.RECEBIDA,
+            StatusSolicitacao.EM_ANALISE,
+            StatusSolicitacao.PENDENTE_CORRECAO,
+            StatusSolicitacao.DEFERIDA,
+            StatusSolicitacao.AGUARDANDO_ASSINATURA);
+
+    /**
+     * Fila do painel. Pedidos em aberto vêm por urgência (viagem mais próxima
+     * primeiro, depois o mais antigo); finalizados, do mais recente pro mais
+     * antigo — ninguém precisa da indeferida de 2024 no topo.
+     *
+     * @param statuses     vazio = todos
+     * @param busca        protocolo ou nome do requerente/menor (opcional)
+     * @param analistaId   preenchido = só os pedidos desse responsável
+     */
     @Transactional(readOnly = true)
-    public Page<SolicitacaoResumoResponse> listar(StatusSolicitacao status, Pageable pageable) {
-        Page<Solicitacao> page = status == null
-                ? repository.findAll(pageable)
-                : repository.findByStatus(status, pageable);
-        return page.map(SolicitacaoMapper::toResumo);
+    public Page<SolicitacaoResumoResponse> listarPainel(Collection<StatusSolicitacao> statuses,
+                                                        String busca,
+                                                        String analistaId,
+                                                        int pagina,
+                                                        int tamanho) {
+        Set<StatusSolicitacao> filtro = statuses == null || statuses.isEmpty()
+                ? EnumSet.allOf(StatusSolicitacao.class)
+                : EnumSet.copyOf(statuses);
+
+        Sort ordem = STATUS_EM_ABERTO.containsAll(filtro)
+                ? Sort.by(Sort.Order.asc("dadosViagem.dataIda").nullsLast(), Sort.Order.asc("criadoEm"))
+                : Sort.by(Sort.Order.desc("atualizadoEm"));
+
+        String termo = busca == null || busca.isBlank()
+                ? "%"
+                : "%" + busca.trim().toLowerCase(Locale.ROOT) + "%";
+        boolean apenasMinhas = analistaId != null;
+
+        return repository.buscarPainel(filtro, apenasMinhas, apenasMinhas ? analistaId : "", termo,
+                        PageRequest.of(pagina, Math.min(tamanho, 100), ordem))
+                .map(SolicitacaoMapper::toResumo);
+    }
+
+    /** Tamanho de cada fila (abas) e quantos pedidos em aberto são do analista. */
+    @Transactional(readOnly = true)
+    public ContagemPainelResponse contarPainel(String analistaId) {
+        Map<StatusSolicitacao, Long> porStatus = new EnumMap<>(StatusSolicitacao.class);
+        for (StatusSolicitacao st : StatusSolicitacao.values()) {
+            porStatus.put(st, 0L);
+        }
+        for (Object[] linha : repository.contarPorStatus()) {
+            porStatus.put((StatusSolicitacao) linha[0], (Long) linha[1]);
+        }
+        long minhas = analistaId == null ? 0
+                : repository.countByAnalistaIdAndStatusIn(analistaId, STATUS_EM_ABERTO);
+        return new ContagemPainelResponse(porStatus, minhas);
+    }
+
+    /**
+     * O analista assume o pedido e vira o responsável. Se ainda estava
+     * "Recebida", já entra em análise. Assumir um pedido de outra pessoa é
+     * permitido (o painel avisa antes) — só não vale pra pedidos finalizados.
+     */
+    @Transactional
+    public SolicitacaoResponse assumir(Long id, Long versaoEsperada, String analistaId, String analistaNome) {
+        Solicitacao solicitacao = buscarEntidade(id);
+        verificarVersao(solicitacao, versaoEsperada);
+
+        if (!STATUS_EM_ABERTO.contains(solicitacao.getStatus())) {
+            throw new RegraNegocioException("Esta solicitação já foi finalizada.");
+        }
+        if (analistaId.equals(solicitacao.getAnalistaId())) {
+            return SolicitacaoMapper.toResponse(solicitacao);
+        }
+
+        solicitacao.setAnalistaId(analistaId);
+        solicitacao.setAnalistaNome(analistaNome);
+
+        // Só a entrada em análise vira histórico: a troca de responsável é
+        // interna, e o histórico também aparece pro cidadão no acompanhamento.
+        if (solicitacao.getStatus() == StatusSolicitacao.RECEBIDA) {
+            solicitacao.setStatus(StatusSolicitacao.EM_ANALISE);
+            solicitacao.addHistorico(HistoricoStatus.builder()
+                    .statusAnterior(StatusSolicitacao.RECEBIDA)
+                    .statusNovo(StatusSolicitacao.EM_ANALISE)
+                    .analistaId(analistaId)
+                    .analistaNome(analistaNome)
+                    .build());
+        }
+
+        return SolicitacaoMapper.toResponse(repository.saveAndFlush(solicitacao));
     }
 
     /**
      * Aplica uma transição de status validada, registrando quem fez e o motivo.
+     * Quem age só vira responsável se o pedido ainda não tinha um.
      *
-     * @param analistaId   Keycloak sub (pode ser nulo se a ação partir do cidadão)
-     * @param analistaNome nome para snapshot no histórico
+     * @param versaoEsperada versão que o analista estava vendo (opcional)
+     * @param analistaId     Keycloak sub (pode ser nulo se a ação partir do cidadão)
+     * @param analistaNome   nome para snapshot no histórico
      */
     @Transactional
-    public SolicitacaoResponse mudarStatus(Long id, StatusSolicitacao novoStatus,
-                                           String observacao, String analistaId, String analistaNome) {
+    public SolicitacaoResponse mudarStatus(Long id, StatusSolicitacao novoStatus, String observacao,
+                                           Long versaoEsperada, String analistaId, String analistaNome) {
         Solicitacao solicitacao = buscarEntidade(id);
+        verificarVersao(solicitacao, versaoEsperada);
         StatusSolicitacao atual = solicitacao.getStatus();
 
         if (!TransicaoStatus.permitida(atual, novoStatus)) {
@@ -145,7 +239,7 @@ public class SolicitacaoService {
         }
 
         solicitacao.setStatus(novoStatus);
-        if (analistaId != null) {
+        if (analistaId != null && solicitacao.getAnalistaId() == null) {
             solicitacao.setAnalistaId(analistaId);
             solicitacao.setAnalistaNome(analistaNome);
         }
@@ -162,7 +256,22 @@ public class SolicitacaoService {
                 .observacao(observacao)
                 .build());
 
-        return SolicitacaoMapper.toResponse(repository.save(solicitacao));
+        // saveAndFlush: grava já (e incrementa a versão) pra resposta sair com
+        // a versão nova — senão o próximo clique do analista daria conflito.
+        return SolicitacaoMapper.toResponse(repository.saveAndFlush(solicitacao));
+    }
+
+    /**
+     * Recusa a operação se a solicitação mudou desde que o analista a
+     * carregou — evita decidir em cima de uma tela desatualizada (ex.: outro
+     * analista já indeferiu, ou o cidadão mandou documento novo).
+     */
+    private void verificarVersao(Solicitacao solicitacao, Long versaoEsperada) {
+        if (versaoEsperada != null && !versaoEsperada.equals(solicitacao.getVersao())) {
+            throw new ConflitoException(
+                    "Esta solicitação foi alterada por outra pessoa enquanto você a via. "
+                            + "Recarregue para ver a situação atual.");
+        }
     }
 
     /**

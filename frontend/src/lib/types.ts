@@ -105,8 +105,11 @@ export interface SolicitacaoResponse {
   dadosViagem: DadosViagemRequest;
   anexos: AnexoResponse[];
   historico: HistoricoStatusResponse[];
+  analistaId: string | null;
   analistaNome: string | null;
   observacaoAnalista: string | null;
+  /** Controle de concorrência: mandar de volta ao mudar status/assumir. */
+  versao: number;
   criadoEm: string;
   atualizadoEm: string;
 }
@@ -119,7 +122,20 @@ export interface SolicitacaoResumoResponse {
   status: StatusSolicitacao;
   requerenteNome: string | null;
   menorNome: string | null;
+  destino: string | null;
+  /** yyyy-MM-dd */
+  dataIda: string | null;
+  analistaId: string | null;
+  analistaNome: string | null;
+  quantidadeAnexos: number;
   criadoEm: string;
+  atualizadoEm: string;
+  versao: number;
+}
+
+export interface ContagemPainelResponse {
+  porStatus: Record<StatusSolicitacao, number>;
+  minhasEmAberto: number;
 }
 
 /** Página no formato padrão do Spring Data. */
@@ -134,6 +150,8 @@ export interface Page<T> {
 export interface MudancaStatusRequest {
   novoStatus: StatusSolicitacao;
   observacao?: string;
+  /** Versão que o analista estava vendo; se mudou, o backend responde 409. */
+  versao?: number;
 }
 
 export interface ConsultaProtocoloResponse {

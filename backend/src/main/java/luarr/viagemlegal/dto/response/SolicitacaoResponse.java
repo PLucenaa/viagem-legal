@@ -25,9 +25,11 @@ public record SolicitacaoResponse(
         DadosViagem dadosViagem,
         List<AnexoResponse> anexos,
         List<HistoricoStatusResponse> historico,
+        String analistaId,
         String analistaNome,
         String observacaoAnalista,
         Instant criadoEm,
-        Instant atualizadoEm
+        Instant atualizadoEm,
+        Long versao
 ) {
 }

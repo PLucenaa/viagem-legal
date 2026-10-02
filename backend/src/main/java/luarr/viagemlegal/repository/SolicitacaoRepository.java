@@ -7,6 +7,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long> {
@@ -37,8 +39,31 @@ public interface SolicitacaoRepository extends JpaRepository<Solicitacao, Long> 
 
     boolean existsByProtocolo(String protocolo);
 
-    /** Painel do analista — filtra por status. */
-    Page<Solicitacao> findByStatus(StatusSolicitacao status, Pageable pageable);
+    /**
+     * Fila do painel. Sem parâmetros nulos de propósito (o Postgres não
+     * infere o tipo de "? is null"): a lista de status vem sempre preenchida,
+     * a busca vem como "%" quando vazia e "apenasMinhas" liga o filtro de
+     * responsável. A ordenação vem no Pageable (ver SolicitacaoService).
+     */
+    @Query("""
+            select s from Solicitacao s
+            where s.status in :statuses
+              and (:apenasMinhas = false or s.analistaId = :analistaId)
+              and (lower(s.protocolo) like :busca
+                   or lower(s.requerente.nomeCompleto) like :busca
+                   or lower(s.menor.nomeCompleto) like :busca)
+            """)
+    Page<Solicitacao> buscarPainel(Collection<StatusSolicitacao> statuses,
+                                   boolean apenasMinhas,
+                                   String analistaId,
+                                   String busca,
+                                   Pageable pageable);
+
+    /** Tamanho da fila por status, numa consulta só (abas do painel). */
+    @Query("select s.status, count(s) from Solicitacao s group by s.status")
+    List<Object[]> contarPorStatus();
+
+    long countByAnalistaIdAndStatusIn(String analistaId, Collection<StatusSolicitacao> statuses);
 
     /** Solicitações atribuídas a um analista (Keycloak sub). */
     Page<Solicitacao> findByAnalistaId(String analistaId, Pageable pageable);

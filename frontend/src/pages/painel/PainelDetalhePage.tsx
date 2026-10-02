@@ -82,6 +82,7 @@ export function PainelDetalhePage() {
       const atualizado = await mudarStatusSolicitacao(solicitacao.id, {
         novoStatus,
         observacao: observacao.trim() || undefined,
+        versao: solicitacao.versao,
       });
       setSolicitacao(atualizado);
       setObservacao("");
@@ -91,6 +92,12 @@ export function PainelDetalhePage() {
       toast.error(
         e instanceof ApiError ? e.message : "Não foi possível mudar o status.",
       );
+      // 409: outra pessoa mudou o pedido antes — mostra a situação atual em
+      // vez de deixar o analista decidir em cima da tela antiga.
+      if (e instanceof ApiError && e.status === 409) {
+        setStatusEscolhido(null);
+        setSolicitacao(await detalharSolicitacao(solicitacao.id));
+      }
     } finally {
       setEnviando(false);
     }
@@ -129,6 +136,11 @@ export function PainelDetalhePage() {
         <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
           {STATUS_LABEL[solicitacao.status]}
         </Badge>
+        <span className="text-sm text-muted-foreground">
+          {solicitacao.analistaNome
+            ? `Responsável: ${solicitacao.analistaNome}`
+            : "Sem responsável"}
+        </span>
       </PageHeader>
 
       <div className="space-y-4">

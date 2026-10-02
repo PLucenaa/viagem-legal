@@ -26,7 +26,9 @@ import luarr.viagemlegal.domain.embeddable.Pessoa;
 import luarr.viagemlegal.domain.enums.StatusSolicitacao;
 import luarr.viagemlegal.domain.enums.TipoAutorizacao;
 import luarr.viagemlegal.domain.enums.TipoResponsavel;
+import jakarta.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
@@ -139,7 +141,28 @@ public class Solicitacao {
     @Builder.Default
     private Set<HistoricoStatus> historico = new LinkedHashSet<>();
 
-    /** Identificador do analista no Keycloak (claim "sub"). Null enquanto não triado. */
+    /**
+     * Controle de concorrência otimista: o Hibernate inclui "where versao = ?"
+     * em todo UPDATE e falha se outra transação gravou antes. O cliente também
+     * manda a versão que estava vendo, pra recusar decisões tomadas em cima de
+     * uma tela desatualizada (ver SolicitacaoService.verificarVersao).
+     */
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0 not null")
+    @Builder.Default
+    private Long versao = 0L;
+
+    /**
+     * Nº de anexos calculado pelo banco na própria consulta — a listagem do
+     * painel não precisa carregar a coleção (e não há sessão aberta pra isso).
+     */
+    @Formula("(select count(*) from anexo a where a.solicitacao_id = id)")
+    private Integer quantidadeAnexos;
+
+    /**
+     * Analista responsável (claim "sub" do Keycloak) — quem "assumiu" o pedido.
+     * Null enquanto ninguém assumiu.
+     */
     private String analistaId;
 
     /** Snapshot do nome do analista, preservado mesmo que ele saia do Keycloak. */
