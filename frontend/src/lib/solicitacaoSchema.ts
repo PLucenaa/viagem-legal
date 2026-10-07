@@ -1,6 +1,18 @@
 import { z } from "zod";
+import { cepValido, cpfValido, telefoneValido } from "@/lib/mascaras";
 
 const tipoDocumento = z.enum(["RG", "CNH", "PASSAPORTE", "CERTIDAO_NASCIMENTO"]);
+
+const cpf = z
+  .string()
+  .min(1, "Informe o CPF")
+  .refine(cpfValido, "CPF inválido");
+
+/** CPF opcional, mas se preenchido precisa ser válido. */
+const cpfOpcional = z
+  .string()
+  .optional()
+  .refine((v) => !v || cpfValido(v), "CPF inválido");
 
 const enderecoSchema = z.object({
   logradouro: z.string().min(1, "Informe o logradouro"),
@@ -8,20 +20,26 @@ const enderecoSchema = z.object({
   complemento: z.string().optional(),
   bairro: z.string().min(1, "Informe o bairro"),
   cidade: z.string().min(1, "Informe a cidade"),
-  uf: z.string().min(1, "UF"),
-  cep: z.string().min(1, "Informe o CEP"),
+  uf: z.string().length(2, "Informe a UF"),
+  cep: z
+    .string()
+    .min(1, "Informe o CEP")
+    .refine(cepValido, "CEP deve ter 8 dígitos"),
 });
 
 const requerenteSchema = z.object({
   nomeCompleto: z.string().min(1, "Informe o nome do responsável"),
-  cpf: z.string().min(1, "Informe o CPF"),
+  cpf,
   nacionalidade: z.string().optional(),
   estadoCivil: z.string().optional(),
   profissao: z.string().optional(),
   tipoDocumento: tipoDocumento,
   numeroDocumento: z.string().min(1, "Informe o número do documento"),
   orgaoExpedidor: z.string().optional(),
-  telefone: z.string().min(1, "Informe o telefone"),
+  telefone: z
+    .string()
+    .min(1, "Informe o telefone")
+    .refine(telefoneValido, "Telefone deve ter DDD + número"),
   email: z.string().email("E-mail inválido").optional().or(z.literal("")),
   endereco: enderecoSchema,
 });
@@ -37,7 +55,7 @@ const menorSchema = z.object({
 
 const responsavelSchema = z.object({
   nomeCompleto: z.string().optional(),
-  cpf: z.string().optional(),
+  cpf: cpfOpcional,
   numeroDocumento: z.string().optional(),
   grauParentesco: z.string().optional(),
 });

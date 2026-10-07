@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, FileCheck2, X } from "lucide-react";
+import { ArrowLeft, Check, FileCheck2, RotateCcw, X } from "lucide-react";
 import gsap from "gsap";
 
 import { Button } from "@/components/ui/button";
@@ -8,13 +8,16 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { ApiError, avaliarTriagem } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Signpost } from "@/components/Signpost";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { INFO_SERVICO } from "@/lib/faq";
+import { cn } from "@/lib/utils";
 import type {
   CaminhoTriagem,
   PassoTriagem,
@@ -44,20 +47,28 @@ const TITULO_CAMINHO: Record<CaminhoTriagem, string> = {
 
 export function TriagemPage() {
   const [respostas, setRespostas] = useState<TriagemRequest>({});
+  // Ordem em que as perguntas foram respondidas — permite desfazer a última.
+  const [historico, setHistorico] = useState<(keyof TriagemRequest)[]>([]);
   const [resultado, setResultado] = useState<TriagemResultadoResponse | null>(
     null,
   );
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const inicializado = useRef(false);
-  const conteudoRef = useRef<HTMLDivElement>(null);
+  // Número da pergunta que está na tela — só muda quando a próxima chega,
+  // pra não trocar o número enquanto a pergunta antiga ainda aparece.
+  const [numeroPergunta, setNumeroPergunta] = useState(1);
   const docsRef = useRef<HTMLUListElement>(null);
+  const tituloRef = useRef<HTMLHeadingElement>(null);
 
-  function avaliar(payload: TriagemRequest) {
+  function avaliar(payload: TriagemRequest, numero: number) {
     setCarregando(true);
     setErro(null);
     avaliarTriagem(payload)
-      .then((res) => setResultado(res))
+      .then((res) => {
+        setResultado(res);
+        setNumeroPergunta(numero);
+      })
       .catch((e) => {
         setErro(
           e instanceof ApiError
@@ -88,27 +99,35 @@ export function TriagemPage() {
     const campo = CAMPO_POR_PASSO[resultado.proximoPasso];
     const novasRespostas = { ...respostas, [campo]: valor };
     setRespostas(novasRespostas);
-    avaliar(novasRespostas);
+    setHistorico((h) => [...h, campo]);
+    jaRespondeu.current = true;
+    avaliar(novasRespostas, historico.length + 2);
+  }
+
+  /** Desfaz a última resposta e volta à pergunta anterior. */
+  function voltarPergunta() {
+    const ultimo = historico.at(-1);
+    if (!ultimo) return;
+    const novasRespostas = { ...respostas };
+    delete novasRespostas[ultimo];
+    setRespostas(novasRespostas);
+    setHistorico((h) => h.slice(0, -1));
+    avaliar(novasRespostas, historico.length);
   }
 
   function reiniciar() {
     setRespostas({});
-    avaliar({});
+    setHistorico([]);
+    avaliar({}, 1);
   }
 
-  // Anima a troca de pergunta/resultado a cada resposta.
-  useLayoutEffect(() => {
-    if (!conteudoRef.current) return;
-    gsap.fromTo(
-      conteudoRef.current,
-      { opacity: 0, y: 16 },
-      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
-    );
-  }, [erro, carregando, resultado]);
+  const reduzirMovimento =
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   // Revela a checklist de documentos em cascata quando o resultado sai.
   useEffect(() => {
-    if (resultado?.concluido && docsRef.current) {
+    if (resultado?.concluido && docsRef.current && !reduzirMovimento) {
       gsap.fromTo(
         docsRef.current.children,
         { opacity: 0, x: -10 },
@@ -122,27 +141,31 @@ export function TriagemPage() {
         },
       );
     }
-  }, [resultado]);
+  }, [resultado, reduzirMovimento]);
+
+  // Depois de responder (ou voltar), leva o foco à pergunta/resultado novo.
+  // Na primeira pergunta não: o foco fica onde o navegador deixou ao abrir.
+  const jaRespondeu = useRef(false);
+  useEffect(() => {
+    if (carregando || !jaRespondeu.current) return;
+    tituloRef.current?.focus();
+  }, [carregando]);
 
   return (
     <PageContainer>
-      <header className="mb-8">
-        <p className="text-xs font-semibold tracking-[0.14em] text-rio uppercase">
-          Assistente de triagem
-        </p>
-        <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight">
-          Preciso de autorização de viagem?
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Responda algumas perguntas simples para descobrir se a viagem
-          nacional da criança ou adolescente exige autorização.
-        </p>
-        <Button asChild variant="link" className="mt-2 px-0">
-          <Link to="/">← Voltar</Link>
-        </Button>
-      </header>
+      <PageHeader
+        atual="Preciso de autorização?"
+        titulo="Preciso de autorização de viagem?"
+        descricao="Responda algumas perguntas simples para descobrir se a viagem nacional da criança ou do adolescente exige autorização."
+        centralizado
+      />
 
-      <div ref={conteudoRef}>
+      <div
+        className={cn(
+          "mx-auto",
+          resultado?.concluido && !erro ? "max-w-5xl" : "max-w-2xl",
+        )}
+      >
       {erro && (
         <Card className="border-destructive/40">
           <CardContent className="pt-6">
@@ -150,7 +173,7 @@ export function TriagemPage() {
             <Button
               variant="outline"
               className="mt-4"
-              onClick={() => avaliar(respostas)}
+              onClick={() => avaliar(respostas, historico.length + 1)}
             >
               Tentar novamente
             </Button>
@@ -158,122 +181,195 @@ export function TriagemPage() {
         </Card>
       )}
 
-      {!erro && carregando && (
-        <p className="text-muted-foreground">Carregando…</p>
-      )}
-
-      {!erro && !carregando && resultado && !resultado.concluido && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">
-              {resultado.pergunta}
-            </CardTitle>
+      {!erro && (!resultado || !resultado.concluido) && (
+        <Card aria-busy={carregando}>
+          <CardHeader
+            className={cn(
+              "gap-3 transition-opacity sm:px-8",
+              carregando && resultado && "opacity-60",
+            )}
+          >
+            {!resultado ? (
+              <>
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-2/3" />
+                <span className="sr-only">Carregando a pergunta…</span>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Pergunta {numeroPergunta}
+                </p>
+                <h2
+                  ref={tituloRef}
+                  tabIndex={-1}
+                  className="font-display text-2xl leading-tight font-semibold text-balance outline-none"
+                >
+                  {resultado?.pergunta}
+                </h2>
+              </>
+            )}
           </CardHeader>
-          <CardContent className="flex gap-3">
-            <Button className="gap-2" onClick={() => responder(true)}>
-              <Check className="size-4" /> Sim
+
+          <CardContent className="grid grid-cols-2 gap-3 sm:px-8">
+            <Button
+              size="lg"
+              className="h-14 gap-2 text-base"
+              disabled={carregando}
+              onClick={() => responder(true)}
+            >
+              <Check className="size-5" aria-hidden /> Sim
             </Button>
             <Button
+              size="lg"
               variant="outline"
-              className="gap-2"
+              className="h-14 gap-2 text-base"
+              disabled={carregando}
               onClick={() => responder(false)}
             >
-              <X className="size-4" /> Não
+              <X className="size-5" aria-hidden /> Não
             </Button>
           </CardContent>
+
+          {historico.length > 0 && (
+            <CardFooter className="border-t sm:px-8">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="-ml-3 gap-2 text-muted-foreground"
+                disabled={carregando}
+                onClick={voltarPergunta}
+              >
+                <ArrowLeft className="size-4" aria-hidden />
+                Pergunta anterior
+              </Button>
+            </CardFooter>
+          )}
         </Card>
       )}
 
-      {!erro && !carregando && resultado?.concluido && (
-        <Card className="overflow-hidden">
-          <div className="flex justify-center bg-secondary/50 pt-6">
-            <Signpost ativo={resultado.caminho} className="max-w-[260px]" />
-          </div>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">
-              {resultado.caminho && TITULO_CAMINHO[resultado.caminho]}
-            </CardTitle>
-            <CardDescription>
-              Fundamento: {resultado.fundamentoLegal} da Resolução CNJ nº
-              295/2019
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              {resultado.mensagem}
-            </p>
+      {!erro && resultado?.concluido && (
+        <Card
+          aria-busy={carregando}
+          className={cn(
+            "gap-0 overflow-hidden py-0 transition-opacity",
+            carregando && "opacity-60",
+          )}
+        >
+          <div className="grid md:grid-cols-[minmax(0,24rem)_1fr]">
+            <div className="flex items-center justify-center bg-secondary/50 p-6">
+              <Signpost ativo={resultado.caminho} className="max-w-[320px] md:max-w-none" />
+            </div>
 
-            {resultado.documentosNecessarios &&
-              resultado.documentosNecessarios.length > 0 && (
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <p className="mb-2 flex items-center gap-2 text-sm font-medium text-foreground">
-                    <FileCheck2 className="size-4 text-primary" />
-                    Documentos necessários
-                  </p>
-                  <ul
-                    ref={docsRef}
-                    className="space-y-1.5 text-sm text-muted-foreground"
-                  >
-                    {resultado.documentosNecessarios.map((doc) => (
-                      <li key={doc} className="flex gap-2">
-                        <span aria-hidden className="text-primary">
-                          •
-                        </span>
-                        {doc}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+            <div className="grid content-start gap-5 p-6 sm:p-8">
+              <div className="grid gap-2">
+                <h2
+                  ref={tituloRef}
+                  tabIndex={-1}
+                  className="font-display text-2xl leading-tight font-semibold text-balance outline-none"
+                >
+                  {resultado.caminho && TITULO_CAMINHO[resultado.caminho]}
+                </h2>
+                <CardDescription>
+                  Fundamento: {resultado.fundamentoLegal} da Resolução CNJ nº
+                  295/2019
+                </CardDescription>
+              </div>
+
+              <p className="text-pretty text-muted-foreground">
+                {resultado.mensagem}
+              </p>
+
+              {resultado.documentosNecessarios &&
+                resultado.documentosNecessarios.length > 0 && (
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <p className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
+                      <FileCheck2 className="size-4 text-primary" aria-hidden />
+                      Documentos necessários
+                    </p>
+                    <ul
+                      ref={docsRef}
+                      className="space-y-2 text-sm text-muted-foreground"
+                    >
+                      {resultado.documentosNecessarios.map((doc) => (
+                        <li key={doc} className="flex gap-2">
+                          <span aria-hidden className="text-primary">
+                            •
+                          </span>
+                          {doc}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+              {resultado.caminho === "DISPENSA" && (
+                <p className="text-sm text-pretty">
+                  Este aviso não substitui nenhum documento de viagem — ele só
+                  informa que, com os documentos acima, não é necessária
+                  nenhuma autorização adicional para essa viagem.
+                </p>
               )}
 
-            {resultado.caminho === "DISPENSA" && (
-              <p className="text-sm">
-                Este aviso não substitui nenhum documento de viagem — ele só
-                informa que, com os documentos acima, não é necessária
-                nenhuma autorização adicional para essa viagem.
-              </p>
-            )}
+              {resultado.caminho === "EXTRAJUDICIAL" && (
+                <>
+                  <p className="text-sm text-pretty">
+                    Você pode preencher agora o modelo de autorização (a
+                    assinatura ainda precisa ter a firma reconhecida em
+                    cartório, por semelhança ou autenticidade). Em caso de
+                    dúvida, fale com a{" "}
+                    <span className="font-medium text-foreground">
+                      {INFO_SERVICO.orgao}
+                    </span>{" "}
+                    — WhatsApp: {INFO_SERVICO.whatsapp} · E-mail:{" "}
+                    {INFO_SERVICO.email}
+                  </p>
+                  <Button asChild size="lg" className="justify-self-start">
+                    <Link
+                      to="/triagem/extrajudicial"
+                      state={{
+                        acompanhado:
+                          respostas.viajaComPessoaAutorizadaPeloResponsavel ===
+                          true,
+                      }}
+                    >
+                      Preencher documento agora
+                    </Link>
+                  </Button>
+                </>
+              )}
 
-            {resultado.caminho === "EXTRAJUDICIAL" && (
-              <div className="space-y-3 text-sm">
-                <p>
-                  Você pode preencher agora o modelo de autorização (a
-                  assinatura ainda precisa ter a firma reconhecida em
-                  cartório, por semelhança ou autenticidade). Em caso de
-                  dúvida, fale com a{" "}
-                  <span className="font-medium text-foreground">
-                    {INFO_SERVICO.orgao}
-                  </span>{" "}
-                  — WhatsApp: {INFO_SERVICO.whatsapp} · E-mail:{" "}
-                  {INFO_SERVICO.email}
-                </p>
-                <Button asChild>
-                  <Link
-                    to="/triagem/extrajudicial"
-                    state={{
-                      acompanhado:
-                        respostas.viajaComPessoaAutorizadaPeloResponsavel ===
-                        true,
-                    }}
-                  >
-                    Preencher documento agora
-                  </Link>
+              {resultado.caminho === "UNIDADE_COMPETENTE" && (
+                <Button asChild size="lg" className="justify-self-start">
+                  <Link to="/solicitar">Iniciar solicitação</Link>
                 </Button>
-              </div>
-            )}
-
-            {resultado.caminho === "UNIDADE_COMPETENTE" && (
-              <Button asChild>
-                <Link to="/solicitar">Iniciar solicitação</Link>
-              </Button>
-            )}
-
-            <div>
-              <Button variant="link" className="px-0" onClick={reiniciar}>
-                Refazer a triagem
-              </Button>
+              )}
             </div>
-          </CardContent>
+          </div>
+
+          <CardFooter className="flex-wrap gap-2 border-t py-4 sm:px-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground"
+              disabled={carregando}
+              onClick={voltarPergunta}
+            >
+              <ArrowLeft className="size-4" aria-hidden />
+              Mudar a última resposta
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-2 text-muted-foreground"
+              disabled={carregando}
+              onClick={reiniciar}
+            >
+              <RotateCcw className="size-4" aria-hidden />
+              Refazer a triagem
+            </Button>
+          </CardFooter>
         </Card>
       )}
       </div>
