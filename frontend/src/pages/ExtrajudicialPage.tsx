@@ -17,6 +17,7 @@ import { Campo, GrupoCampo } from "@/components/form/Campo";
 import { InputMascara } from "@/components/form/InputMascara";
 import { OpcoesRadio } from "@/components/form/OpcoesRadio";
 import { mascaraCpf, mascaraTelefone, mascaraUf } from "@/lib/mascaras";
+import { TIPO_RESPONSAVEL_LABEL } from "@/lib/rotulos";
 import type { TipoResponsavel } from "@/lib/types";
 
 interface PessoaForm {

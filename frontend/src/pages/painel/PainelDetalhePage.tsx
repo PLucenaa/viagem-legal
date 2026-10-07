@@ -1,14 +1,19 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, CalendarClock, MapPin } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DecisaoPainel } from "@/components/painel/DecisaoPainel";
+import { DocumentosPainel } from "@/components/painel/DocumentosPainel";
+import { HistoricoPainel } from "@/components/painel/HistoricoPainel";
+import { Dado, SecaoDados } from "@/components/painel/SecaoDados";
+import { ApiError, detalharSolicitacao, listarSolicitacoes } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
   formatarCpf,
   formatarData,

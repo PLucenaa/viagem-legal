@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FileCheck2, Inbox, RefreshCw, Search } from "lucide-react";
+import { Inbox, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,20 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
-import type { Page, SolicitacaoResumoResponse, StatusSolicitacao } from "@/lib/types";
+import { CardSolicitacao } from "@/components/painel/CardSolicitacao";
+import {
+  ApiError,
+  assumirSolicitacao,
+  contarSolicitacoes,
+  listarSolicitacoes,
+} from "@/lib/api";
+import { useAuth } from "@/lib/auth";
+import { ABAS_PAINEL } from "@/lib/statusSolicitacao";
+import type {
+  ContagemPainelResponse,
+  Page,
+  SolicitacaoResumoResponse,
+} from "@/lib/types";
 
 /** A fila se atualiza sozinha: um pedido novo aparece sem recarregar. */
 const INTERVALO_ATUALIZACAO_MS = 60_000;
@@ -174,28 +186,6 @@ export function PainelListaPage() {
         titulo="Painel interno — Solicitações"
         descricao="Fila de solicitações de autorização de viagem para conferência e autorização."
       />
-
-      <div className="mb-4 flex items-center gap-3">
-        <Select
-          value={status}
-          onValueChange={(v) => {
-            setStatus(v as StatusSolicitacao | "TODOS");
-            setPagina(0);
-          }}
-        >
-          <SelectTrigger className="w-64">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="TODOS">Todos os status</SelectItem>
-            {TODOS_STATUS.map((s) => (
-              <SelectItem key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
 
       {/* A fila fica dentro do TabsContent: cada aba aponta (aria-controls)
           pro painel com o conteúdo dela. */}
