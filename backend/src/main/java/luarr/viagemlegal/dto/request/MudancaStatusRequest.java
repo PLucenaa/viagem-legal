@@ -9,6 +9,8 @@ import luarr.viagemlegal.domain.enums.StatusSolicitacao;
  */
 public record MudancaStatusRequest(
         @NotNull StatusSolicitacao novoStatus,
-        String observacao
+        String observacao,
+        /** Versão que o analista estava vendo; se outra pessoa mudou antes, recusa (409). */
+        Long versao
 ) {
 }

@@ -1,5 +1,6 @@
 package luarr.viagemlegal.exception;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -24,6 +25,19 @@ public class ApiExceptionHandler {
     @ExceptionHandler(RegraNegocioException.class)
     public ProblemDetail handleRegraNegocio(RegraNegocioException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    @ExceptionHandler(ConflitoException.class)
+    public ProblemDetail handleConflito(ConflitoException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    /** Duas transações gravaram a mesma solicitação ao mesmo tempo (@Version). */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ProblemDetail handleConcorrencia(OptimisticLockingFailureException ex) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT,
+                "Esta solicitação foi alterada por outra pessoa ao mesmo tempo. "
+                        + "Recarregue para ver a situação atual.");
     }
 
     @ExceptionHandler(AutenticacaoException.class)

@@ -81,12 +81,7 @@ const MENOR_VAZIO: MenorForm = {
   cpf: "",
 };
 
-const QUALIDADE_LABEL: Record<TipoResponsavel, string> = {
-  MAE: "Mãe",
-  PAI: "Pai",
-  TUTOR: "Tutor(a)",
-  GUARDIAO: "Guardião(ã)",
-};
+const QUALIDADE_LABEL = TIPO_RESPONSAVEL_LABEL;
 
 const OPCOES_QUALIDADE = (Object.keys(QUALIDADE_LABEL) as TipoResponsavel[]).map(
   (q) => ({ valor: q, rotulo: QUALIDADE_LABEL[q] }),

@@ -1,5 +1,6 @@
 import type {
   AutorizacaoDocumentoResponse,
+  ContagemPainelResponse,
   ConsultaProtocoloResponse,
   MudancaStatusRequest,
   Page,
@@ -126,13 +127,43 @@ async function authFetch(url: string, init: RequestInit = {}): Promise<Response>
   return novoToken ? fetch(url, comToken(init, novoToken)) : res;
 }
 
+export interface FiltroPainel {
+  /** Vazio = todos os status. */
+  statuses: StatusSolicitacao[];
+  busca?: string;
+  /** Só os pedidos em que o analista logado é o responsável. */
+  minhas?: boolean;
+  page: number;
+}
+
 export async function listarSolicitacoes(
-  status: StatusSolicitacao | undefined,
-  page: number,
+  filtro: FiltroPainel,
 ): Promise<Page<SolicitacaoResumoResponse>> {
-  const params = new URLSearchParams({ page: String(page), size: "20" });
-  if (status) params.set("status", status);
+  const params = new URLSearchParams({ page: String(filtro.page), size: "24" });
+  filtro.statuses.forEach((s) => params.append("status", s));
+  if (filtro.busca?.trim()) params.set("busca", filtro.busca.trim());
+  if (filtro.minhas) params.set("minhas", "true");
   const res = await authFetch(`${BASE}/analista/solicitacoes?${params}`);
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+export async function contarSolicitacoes(): Promise<ContagemPainelResponse> {
+  const res = await authFetch(`${BASE}/analista/solicitacoes/contagem`);
+  if (!res.ok) return parseError(res);
+  return res.json();
+}
+
+/** O analista logado assume o pedido (Recebida → Em análise). */
+export async function assumirSolicitacao(
+  id: number,
+  versao: number,
+): Promise<SolicitacaoResponse> {
+  const res = await authFetch(`${BASE}/analista/solicitacoes/${id}/assumir`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ versao }),
+  });
   if (!res.ok) return parseError(res);
   return res.json();
 }

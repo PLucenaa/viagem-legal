@@ -4,6 +4,9 @@ import { LogIn, LogOut, Menu, X } from "lucide-react";
 import logoTjrr from "@/assets/logo_tjrr_white.png";
 import { HEADER, NAV_PAINEL } from "@/lib/header";
 import { useAuth } from "@/lib/auth";
+import { useContagemPainel } from "@/lib/useContagemPainel";
+import { MenuUsuario } from "@/components/layout/MenuUsuario";
+import { NotificacoesPainel } from "@/components/layout/NotificacoesPainel";
 import { cn } from "@/lib/utils";
 import { BotaoAltoContraste } from "@/components/layout/BotaoAltoContraste";
 
@@ -11,6 +14,7 @@ export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
   const { podeAcessarPainel, usuario, sair } = useAuth();
   const nav = podeAcessarPainel ? [...HEADER.nav, NAV_PAINEL] : HEADER.nav;
+  const contagem = useContagemPainel(podeAcessarPainel);
 
   return (
     <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden [&_:is(a,button):focus-visible]:outline-none [&_:is(a,button):focus-visible]:ring-2 [&_:is(a,button):focus-visible]:ring-lavrado">
@@ -62,15 +66,10 @@ export function AppHeader() {
           ))}
           <BotaoAltoContraste />
           {usuario ? (
-            <button
-              type="button"
-              onClick={sair}
-              title={`Sair (${usuario.nome})`}
-              className="ml-1 inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper"
-            >
-              <LogOut className="size-3.5" aria-hidden />
-              Sair
-            </button>
+            <div className="ml-2 flex items-center gap-1 border-l border-paper/20 pl-3">
+              {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
+              <MenuUsuario usuario={usuario} onSair={sair} />
+            </div>
           ) : (
             <Link
               to="/acesso-interno"
