@@ -16,22 +16,6 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { RotaInterna } from "@/components/auth/RotaInterna";
 import { PainelAcessibilidade } from "@/components/layout/PainelAcessibilidade";
 
-function FocoAoNavegar() {
-  const { pathname } = useLocation();
-  // Compara com a rota anterior (e não "primeira renderização"): no
-  // StrictMode o efeito roda duas vezes e roubaria o foco ao abrir a página.
-  const rotaAnterior = useRef(pathname);
-
-  useEffect(() => {
-    if (rotaAnterior.current === pathname) return;
-    rotaAnterior.current = pathname;
-    window.scrollTo(0, 0);
-    document.getElementById("conteudo")?.focus({ preventScroll: true });
-  }, [pathname]);
-
-  return null;
-}
-
 /**
  * Numa SPA o navegador não "carrega" a página nova: sem isso, o foco fica no
  * link clicado e o leitor de tela não percebe a troca. Leva o foco pro
