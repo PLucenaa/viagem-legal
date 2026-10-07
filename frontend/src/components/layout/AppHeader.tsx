@@ -5,6 +5,7 @@ import logoTjrr from "@/assets/logo_tjrr_white.png";
 import { HEADER, NAV_PAINEL } from "@/lib/header";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { BotaoAltoContraste } from "@/components/layout/BotaoAltoContraste";
 
 export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -12,27 +13,20 @@ export function AppHeader() {
   const nav = podeAcessarPainel ? [...HEADER.nav, NAV_PAINEL] : HEADER.nav;
 
   return (
-    <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden">
+    <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden [&_:is(a,button):focus-visible]:outline-none [&_:is(a,button):focus-visible]:ring-2 [&_:is(a,button):focus-visible]:ring-lavrado">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:min-h-20 sm:gap-4 sm:px-6">
         <Link
           to="/"
           className="flex min-w-0 flex-1 items-center gap-3"
           onClick={() => setMenuAberto(false)}
         >
-          {/* A logo original tem o símbolo em cima e o texto "Poder Judiciário"
-              embaixo, ambos ocupando a largura toda — por isso o recorte é
-              largo e baixo (não quadrado), só pra mostrar o símbolo. */}
-          <span className="flex h-10 w-[5.75rem] shrink-0 items-start justify-center overflow-hidden sm:h-11 sm:w-24">
-            <img
-              src={logoTjrr}
-              alt=""
-              aria-hidden
-              className="h-auto w-full shrink-0 object-cover object-top"
-            />
-          </span>
+          <img
+            src={logoTjrr}
+            alt=""
+            aria-hidden
+            className="h-auto w-24 shrink-0 object-contain sm:w-28"
+          />
 
-          {/* Abaixo de sm não cabe o título completo em uma linha — usa a
-              marca curta pra não quebrar e estourar a altura do header. */}
           <span className="min-w-0 truncate text-[13px] font-semibold tracking-[0.06em] text-paper uppercase lg:hidden">
             {HEADER.marcaCurta}
           </span>
@@ -66,6 +60,7 @@ export function AppHeader() {
               {item.label}
             </NavLink>
           ))}
+          <BotaoAltoContraste />
           {usuario ? (
             <button
               type="button"
@@ -87,16 +82,19 @@ export function AppHeader() {
           )}
         </nav>
 
-        <button
-          type="button"
-          className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10 lg:hidden"
-          aria-expanded={menuAberto}
-          aria-controls="menu-mobile"
-          aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
-          onClick={() => setMenuAberto((v) => !v)}
-        >
-          {menuAberto ? <X className="size-6" /> : <Menu className="size-6" />}
-        </button>
+        <div className="flex items-center gap-1 lg:hidden">
+          <BotaoAltoContraste compacto />
+          <button
+            type="button"
+            className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10"
+            aria-expanded={menuAberto}
+            aria-controls="menu-mobile"
+            aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
+            onClick={() => setMenuAberto((v) => !v)}
+          >
+            {menuAberto ? <X className="size-6" /> : <Menu className="size-6" />}
+          </button>
+        </div>
       </div>
 
       {menuAberto && (
