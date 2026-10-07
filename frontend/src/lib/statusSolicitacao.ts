@@ -38,3 +38,28 @@ export const TRANSICOES_PERMITIDAS: Record<StatusSolicitacao, StatusSolicitacao[
 export function observacaoObrigatoria(novoStatus: StatusSolicitacao): boolean {
   return novoStatus === "INDEFERIDA" || novoStatus === "PENDENTE_CORRECAO";
 }
+
+/** Abas do painel: cada uma é um recorte da fila por status. */
+export interface AbaPainel {
+  id: string;
+  rotulo: string;
+  statuses: StatusSolicitacao[];
+}
+
+export const ABAS_PAINEL: AbaPainel[] = [
+  {
+    id: "aberto",
+    rotulo: "Em aberto",
+    statuses: ["RECEBIDA", "EM_ANALISE", "PENDENTE_CORRECAO", "DEFERIDA", "AGUARDANDO_ASSINATURA"],
+  },
+  { id: "recebidas", rotulo: "Recebidas", statuses: ["RECEBIDA"] },
+  { id: "analise", rotulo: "Em análise", statuses: ["EM_ANALISE"] },
+  { id: "correcao", rotulo: "Aguardando correção", statuses: ["PENDENTE_CORRECAO"] },
+  { id: "assinatura", rotulo: "Para assinar", statuses: ["DEFERIDA", "AGUARDANDO_ASSINATURA"] },
+  { id: "finalizadas", rotulo: "Finalizadas", statuses: ["CONCLUIDA", "INDEFERIDA"] },
+];
+
+/** Status em que o pedido ainda pode ser assumido/trabalhado. */
+export function emAberto(status: StatusSolicitacao): boolean {
+  return ABAS_PAINEL[0].statuses.includes(status);
+}

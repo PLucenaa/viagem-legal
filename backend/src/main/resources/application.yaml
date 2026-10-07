@@ -41,7 +41,7 @@ app:
     # Keycloak próprio (Coolify em produção, docker-compose localmente).
     # O issuer validado nos tokens é <url>/realms/<realm> — precisa bater com
     # o KC_HOSTNAME configurado no Keycloak.
-    url: ${KEYCLOAK_URL:http://localhost:8180}
+    url: ${KEYCLOAK_URL:https://auth.luarr.cloud}
     realm: ${KEYCLOAK_REALM:viagem-legal}
     # Client "de audiência": o token só é aceito se tiver este client no "aud"
     # (mapper de audiência configurado no client do frontend).

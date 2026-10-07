@@ -1,0 +1,79 @@
+{
+  "realm": "viagem-legal",
+  "displayName": "Viagem Legal",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["pt-BR"],
+  "defaultLocale": "pt-BR",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "roles": {
+    "client": {
+      "viagem-legal-frontend": [
+        { "name": "ANALISTA", "description": "Analisa solicitações no painel interno" },
+        { "name": "ADMIN", "description": "Administrador do painel interno" }
+      ]
+    }
+  },
+  "clients": [
+    {
+      "clientId": "viagem-legal-backend",
+      "name": "Viagem Legal (API)",
+      "description": "Client de audiência: a API só aceita tokens com este client no \"aud\".",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    },
+    {
+      "clientId": "viagem-legal-frontend",
+      "name": "Viagem Legal (painel)",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": true,
+      "rootUrl": "",
+      "redirectUris": [
+        "http://localhost:5173/callback-keycloak",
+        "https://viagem-legal.luarr.cloud/callback-keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "https://viagem-legal.luarr.cloud"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/##https://viagem-legal.luarr.cloud/"
+      },
+      "protocolMappers": [
+        {
+          "name": "audience-viagem-legal-backend",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "viagem-legal-backend",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

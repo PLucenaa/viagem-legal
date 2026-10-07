@@ -26,7 +26,9 @@ import luarr.viagemlegal.domain.embeddable.Pessoa;
 import luarr.viagemlegal.domain.enums.StatusSolicitacao;
 import luarr.viagemlegal.domain.enums.TipoAutorizacao;
 import luarr.viagemlegal.domain.enums.TipoResponsavel;
+import jakarta.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Formula;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
@@ -139,7 +141,36 @@ public class Solicitacao {
     @Builder.Default
     private Set<HistoricoStatus> historico = new LinkedHashSet<>();
 
-    /** Identificador do analista no Keycloak (claim "sub"). Null enquanto não triado. */
+    /**
+     * Controle de concorrência otimista: o Hibernate inclui "where versao = ?"
+     * em todo UPDATE e falha se outra transação gravou antes. O cliente também
+     * manda a versão que estava vendo, pra recusar decisões tomadas em cima de
+     * uma tela desatualizada (ver SolicitacaoService.verificarVersao).
+     */
+    @Version
+    @Column(nullable = false, columnDefinition = "bigint default 0 not null")
+    @Builder.Default
+    private Long versao = 0L;
+
+    /**
+     * Nº de anexos calculado pelo banco na própria consulta — a listagem do
+     * painel não precisa carregar a coleção (e não há sessão aberta pra isso).
+     */
+    @Formula("(select count(*) from anexo a where a.solicitacao_id = id)")
+    private Integer quantidadeAnexos;
+
+    /** Quando chegou o último documento (derivado da tabela de anexos). */
+    @Formula("(select max(a.enviado_em) from anexo a where a.solicitacao_id = id)")
+    private Instant ultimoAnexoEm;
+
+    /** Quando o status mudou pela última vez (derivado do histórico). */
+    @Formula("(select max(h.ocorrido_em) from historico_status h where h.solicitacao_id = id)")
+    private Instant ultimaMudancaStatusEm;
+
+    /**
+     * Analista responsável (claim "sub" do Keycloak) — quem "assumiu" o pedido.
+     * Null enquanto ninguém assumiu.
+     */
     private String analistaId;
 
     /** Snapshot do nome do analista, preservado mesmo que ele saia do Keycloak. */
@@ -155,6 +186,20 @@ public class Solicitacao {
 
     @UpdateTimestamp
     private Instant atualizadoEm;
+
+    /**
+     * O cidadão mandou documento depois do pedido de correção: o pedido
+     * "voltou" e espera o analista. Calculado a partir do histórico e dos
+     * anexos (o registro de verdade), em vez de uma flag guardada que teria
+     * de ser ligada e desligada em sincronia com eles. Some sozinho quando o
+     * analista retoma a análise (nova entrada no histórico).
+     */
+    public boolean isCorrecaoRecebida() {
+        return status == StatusSolicitacao.PENDENTE_CORRECAO
+                && ultimoAnexoEm != null
+                && ultimaMudancaStatusEm != null
+                && ultimoAnexoEm.isAfter(ultimaMudancaStatusEm);
+    }
 
     // --- Helpers de relacionamento (mantêm os dois lados sincronizados) ---
 
