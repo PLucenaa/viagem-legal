@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Printer } from "lucide-react";
+import { ArrowLeft, Printer } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +11,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { InputMascara } from "@/components/form/InputMascara";
 import { Badge } from "@/components/ui/badge";
 import { AnexoUploadSection } from "@/components/AnexoUploadSection";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { ApiError, buscarAutorizacao, consultarPorProtocolo } from "@/lib/api";
+import { mascaraProtocolo } from "@/lib/mascaras";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
 import type {
   AutorizacaoDocumentoResponse,
@@ -114,8 +116,12 @@ export function AcompanharPage() {
     return (
       <PageContainer className="print:max-w-none print:px-0 print:py-0">
         <div className="mb-4 flex gap-3 print:hidden">
-          <Button variant="outline" onClick={() => setAutorizacao(null)}>
-            ← Voltar
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setAutorizacao(null)}
+          >
+            <ArrowLeft className="size-4" aria-hidden /> Voltar ao acompanhamento
           </Button>
           <Button className="gap-2" onClick={() => window.print()}>
             <Printer className="size-4" /> Imprimir / salvar PDF
@@ -178,17 +184,11 @@ export function AcompanharPage() {
 
   return (
     <PageContainer>
-      <div className="mb-6">
-        <Button asChild variant="link" size="sm" className="px-0">
-          <Link to="/">← Voltar</Link>
-        </Button>
-        <h1 className="font-display text-2xl font-semibold text-foreground">
-          Acompanhar solicitação
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Informe o número do protocolo recebido ao enviar o pedido.
-        </p>
-      </div>
+      <PageHeader
+        atual="Acompanhar"
+        titulo="Acompanhar solicitação"
+        descricao="Informe o número do protocolo recebido ao enviar o pedido."
+      />
 
       <form
         className="mb-6 flex gap-2"
@@ -197,10 +197,13 @@ export function AcompanharPage() {
           consultar(protocolo);
         }}
       >
-        <Input
-          placeholder="VL-2026-000000"
+        <InputMascara
+          aria-label="Número do protocolo"
+          placeholder="Ex: VL-2026-000000"
+          inputMode="numeric"
           value={protocolo}
-          onChange={(e) => setProtocolo(e.target.value)}
+          onChange={setProtocolo}
+          mascara={mascaraProtocolo}
         />
         <Button type="submit" disabled={carregando}>
           {carregando ? "Consultando..." : "Consultar"}

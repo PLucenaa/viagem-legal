@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import {
   anexoUrl,
   ApiError,
@@ -106,8 +108,10 @@ export function PainelDetalhePage() {
     return (
       <PageContainer>
         <p className="text-sm text-destructive">{erro ?? "Não encontrado."}</p>
-        <Button asChild variant="link" className="mt-2 px-0">
-          <Link to="/painel">← Voltar</Link>
+        <Button asChild variant="outline" className="mt-4 gap-2">
+          <Link to="/painel">
+            <ArrowLeft className="size-4" aria-hidden /> Voltar para a lista
+          </Link>
         </Button>
       </PageContainer>
     );
@@ -117,19 +121,15 @@ export function PainelDetalhePage() {
 
   return (
     <PageContainer>
-      <header className="mb-6">
-        <Button asChild variant="link" className="px-0">
-          <Link to="/painel">← Voltar para a lista</Link>
-        </Button>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <h1 className="font-display text-2xl font-semibold tracking-tight">
-            {solicitacao.protocolo}
-          </h1>
-          <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
-            {STATUS_LABEL[solicitacao.status]}
-          </Badge>
-        </div>
-      </header>
+      <PageHeader
+        trilha={[{ rotulo: "Painel", to: "/painel" }]}
+        atual={solicitacao.protocolo}
+        titulo={solicitacao.protocolo}
+      >
+        <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
+          {STATUS_LABEL[solicitacao.status]}
+        </Badge>
+      </PageHeader>
 
       <div className="space-y-4">
         <Card>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { ApiError, listarSolicitacoes } from "@/lib/api";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
 import type { Page, SolicitacaoResumoResponse, StatusSolicitacao } from "@/lib/types";
 
@@ -51,16 +52,12 @@ export function PainelListaPage() {
   }, [status, pagina]);
 
   return (
-    <PageContainer largura="tabela">
-      <header className="mb-6">
-        <h1 className="font-display text-3xl font-semibold tracking-tight">
-          Painel interno — Solicitações
-        </h1>
-        <p className="mt-2 text-muted-foreground">
-          Fila de solicitações de autorização de viagem para conferência e
-          autorização.
-        </p>
-      </header>
+    <PageContainer>
+      <PageHeader
+        atual="Painel"
+        titulo="Painel interno — Solicitações"
+        descricao="Fila de solicitações de autorização de viagem para conferência e autorização."
+      />
 
       <div className="mb-4 flex items-center gap-3">
         <Select
