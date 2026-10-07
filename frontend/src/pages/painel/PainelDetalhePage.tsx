@@ -1,110 +1,117 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowLeft, CalendarClock, MapPin } from "lucide-react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { DecisaoPainel } from "@/components/painel/DecisaoPainel";
+import { DocumentosPainel } from "@/components/painel/DocumentosPainel";
+import { HistoricoPainel } from "@/components/painel/HistoricoPainel";
+import { Dado, SecaoDados } from "@/components/painel/SecaoDados";
+import { ApiError, detalharSolicitacao, listarSolicitacoes } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import {
-  anexoUrl,
-  ApiError,
-  detalharSolicitacao,
-  mudarStatusSolicitacao,
-} from "@/lib/api";
-import {
-  observacaoObrigatoria,
-  STATUS_BADGE_VARIANT,
-  STATUS_LABEL,
-  TRANSICOES_PERMITIDAS,
-} from "@/lib/statusSolicitacao";
-import { TIPO_ANEXO_LABEL } from "@/lib/tipoAnexo";
-import type { SolicitacaoResponse, StatusSolicitacao } from "@/lib/types";
-
-function Campo({ label, valor }: { label: string; valor?: string | null }) {
-  if (!valor) return null;
-  return (
-    <div>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd>{valor}</dd>
-    </div>
-  );
-}
+  formatarCpf,
+  formatarData,
+  formatarDocumento,
+  formatarEndereco,
+  formatarTelefone,
+  idadeEmAnos,
+  TIPO_AUTORIZACAO_LABEL,
+  TIPO_RESPONSAVEL_LABEL,
+} from "@/lib/rotulos";
+import { ABAS_PAINEL, emAberto, STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
+import { haQuantoTempo, urgenciaDaViagem } from "@/lib/urgencia";
+import type { SolicitacaoResponse } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function PainelDetalhePage() {
   const { id } = useParams<{ id: string }>();
-  const [solicitacao, setSolicitacao] = useState<SolicitacaoResponse | null>(
-    null,
-  );
-  const [carregando, setCarregando] = useState(true);
+  const navigate = useNavigate();
+  const { usuario } = useAuth();
+  const [solicitacao, setSolicitacao] = useState<SolicitacaoResponse | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [observacao, setObservacao] = useState("");
-  const [statusEscolhido, setStatusEscolhido] =
-    useState<StatusSolicitacao | null>(null);
-  const [enviando, setEnviando] = useState(false);
+  const [buscandoProxima, setBuscandoProxima] = useState(false);
+
+  const carregar = useCallback(
+    () =>
+      detalharSolicitacao(Number(id)).then(
+        (res) => {
+          setSolicitacao(res);
+          setErro(null);
+        },
+        (e) =>
+          setErro(e instanceof ApiError ? e.message : "Não foi possível carregar a solicitação."),
+      ),
+    [id],
+  );
 
   useEffect(() => {
-    if (!id) return;
-    let cancelado = false;
-    detalharSolicitacao(Number(id))
-      .then((res) => {
-        if (cancelado) return;
+    let ativo = true;
+    detalharSolicitacao(Number(id)).then(
+      (res) => {
+        if (!ativo) return;
         setSolicitacao(res);
         setErro(null);
-      })
-      .catch((e) => {
-        if (cancelado) return;
-        setErro(
-          e instanceof ApiError
-            ? e.message
-            : "Não foi possível carregar a solicitação.",
-        );
-      })
-      .finally(() => {
-        if (!cancelado) setCarregando(false);
-      });
+      },
+      (e) => {
+        if (ativo) {
+          setErro(e instanceof ApiError ? e.message : "Não foi possível carregar a solicitação.");
+        }
+      },
+    );
     return () => {
-      cancelado = true;
+      ativo = false;
     };
   }, [id]);
 
-  async function aplicarTransicao(novoStatus: StatusSolicitacao) {
-    if (!solicitacao) return;
-    if (observacaoObrigatoria(novoStatus) && !observacao.trim()) {
-      toast.error("Informe uma observação para essa mudança de status.");
-      return;
-    }
-    setEnviando(true);
+  /**
+   * Próximo pedido a trabalhar: primeiro os em aberto que já são do analista,
+   * depois os recebidos sem responsável — sempre pela ordem de urgência da fila.
+   */
+  async function irParaProxima() {
+    setBuscandoProxima(true);
     try {
-      const atualizado = await mudarStatusSolicitacao(solicitacao.id, {
-        novoStatus,
-        observacao: observacao.trim() || undefined,
-      });
-      setSolicitacao(atualizado);
-      setObservacao("");
-      setStatusEscolhido(null);
-      toast.success(`Status alterado para ${STATUS_LABEL[novoStatus]}.`);
+      const atual = Number(id);
+      const minhas = await listarSolicitacoes({ statuses: ABAS_PAINEL[0].statuses, minhas: true, page: 0 });
+      let proxima = minhas.content.find((s) => s.id !== atual && s.status !== "PENDENTE_CORRECAO");
+      if (!proxima) {
+        const novas = await listarSolicitacoes({ statuses: ["RECEBIDA"], page: 0 });
+        proxima = novas.content.find((s) => s.id !== atual);
+      }
+      if (proxima) {
+        navigate(`/painel/${proxima.id}`);
+      } else {
+        toast.success("Fila em dia: não há outro pedido esperando por você.");
+        navigate("/painel");
+      }
     } catch (e) {
-      toast.error(
-        e instanceof ApiError ? e.message : "Não foi possível mudar o status.",
-      );
+      toast.error(e instanceof ApiError ? e.message : "Não foi possível buscar o próximo pedido.");
     } finally {
-      setEnviando(false);
+      setBuscandoProxima(false);
     }
   }
 
-  if (carregando) {
+  if (erro) {
     return (
       <PageContainer>
-        <p className="text-muted-foreground">Carregando…</p>
+        <PageHeader trilha={[{ rotulo: "Painel", to: "/painel" }]} atual="Pedido" titulo="Pedido" />
+        <p className="text-sm text-destructive">{erro}</p>
+        <Button asChild variant="outline" className="mt-4 gap-2">
+          <Link to="/painel">
+            <ArrowLeft className="size-4" aria-hidden /> Voltar para a fila
+          </Link>
+        </Button>
       </PageContainer>
     );
   }
 
-  if (erro || !solicitacao) {
+  // Trocou de pedido (próxima da fila) e o novo ainda não chegou.
+  if (!solicitacao || solicitacao.id !== Number(id)) {
     return (
       <PageContainer>
         <p className="text-sm text-destructive">{erro ?? "Não encontrado."}</p>
@@ -117,7 +124,9 @@ export function PainelDetalhePage() {
     );
   }
 
-  const transicoes = TRANSICOES_PERMITIDAS[solicitacao.status];
+  const s = solicitacao;
+  const urgencia = emAberto(s.status) ? urgenciaDaViagem(s.dadosViagem.dataIda) : null;
+  const idade = s.menor.dataNascimento ? idadeEmAnos(s.menor.dataNascimento) : null;
 
   return (
     <PageContainer>
@@ -131,178 +140,138 @@ export function PainelDetalhePage() {
         </Badge>
       </PageHeader>
 
-      <div className="space-y-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Requerente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <Campo label="Nome" valor={solicitacao.requerente.nomeCompleto} />
-              <Campo label="CPF" valor={solicitacao.requerente.cpf} />
-              <Campo label="Telefone" valor={solicitacao.requerente.telefone} />
-              <Campo label="E-mail" valor={solicitacao.requerente.email} />
-              <Campo
-                label="Qualidade"
-                valor={solicitacao.tipoResponsavel}
-              />
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Criança/adolescente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <Campo label="Nome" valor={solicitacao.menor.nomeCompleto} />
-              <Campo
-                label="Data de nascimento"
-                valor={solicitacao.menor.dataNascimento}
-              />
-              <Campo label="Naturalidade" valor={solicitacao.menor.naturalidade} />
-              <Campo
-                label="Documento"
-                valor={solicitacao.menor.numeroDocumento}
-              />
-            </dl>
-          </CardContent>
-        </Card>
-
-        {solicitacao.responsavel?.nomeCompleto && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Acompanhante/responsável</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <dl className="grid gap-3 sm:grid-cols-2">
-                <Campo label="Nome" valor={solicitacao.responsavel.nomeCompleto} />
-                <Campo label="CPF" valor={solicitacao.responsavel.cpf} />
-                <Campo label="Telefone" valor={solicitacao.responsavel.telefone} />
-              </dl>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Viagem</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid gap-3 sm:grid-cols-2">
-              <Campo label="Destino" valor={solicitacao.dadosViagem.destino} />
-              <Campo label="Data de ida" valor={solicitacao.dadosViagem.dataIda} />
-              <Campo label="Data de volta" valor={solicitacao.dadosViagem.dataVolta} />
-              <Campo
-                label="Meio de transporte"
-                valor={solicitacao.dadosViagem.meioTransporte}
-              />
-            </dl>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Anexos ({solicitacao.anexos.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {solicitacao.anexos.length === 0 ? (
+      {/* minmax(0, 1fr): sem isso, um texto longo (nome de arquivo) alarga a
+          coluna além da tela no celular. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
+        {/* Resumo: quem viaja, pra onde e quando — o que decide a prioridade. */}
+        <Card className="py-5 lg:col-start-1">
+          <CardContent className="grid gap-3 px-5 sm:px-6">
+            <div className="grid gap-1">
+              <h2 className="font-display text-2xl leading-tight font-semibold text-balance">
+                {s.menor.nomeCompleto}
+              </h2>
               <p className="text-sm text-muted-foreground">
-                Nenhum anexo enviado ainda.
+                {idade !== null && `${idade} ${idade === 1 ? "ano" : "anos"} · `}
+                Pedido de {TIPO_RESPONSAVEL_LABEL[s.tipoResponsavel].toLowerCase()},{" "}
+                {s.requerente.nomeCompleto} · recebido {haQuantoTempo(s.criadoEm)}
               </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {solicitacao.anexos.map((a) => (
-                  <li key={a.id} className="flex justify-between gap-2">
-                    <a
-                      href={anexoUrl(a.id)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-primary hover:underline"
-                    >
-                      {TIPO_ANEXO_LABEL[a.tipo]} — {a.nomeArquivo}
-                    </a>
-                    <span className="text-muted-foreground">
-                      {(a.tamanhoBytes / 1024).toFixed(0)} KB
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Histórico</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              {solicitacao.historico.map((h, i) => (
-                <li key={i} className="border-b pb-2 last:border-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={STATUS_BADGE_VARIANT[h.statusNovo]}>
-                      {STATUS_LABEL[h.statusNovo]}
-                    </Badge>
-                    <span className="text-muted-foreground">
-                      {new Date(h.ocorridoEm).toLocaleString("pt-BR")}
-                    </span>
-                    {h.analistaNome && (
-                      <span className="text-muted-foreground">
-                        · {h.analistaNome}
-                      </span>
-                    )}
-                  </div>
-                  {h.observacao && <p className="mt-1">{h.observacao}</p>}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-
-        {transicoes.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Mudar status</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                {transicoes.map((s) => (
-                  <Button
-                    key={s}
-                    variant={statusEscolhido === s ? "default" : "outline"}
-                    onClick={() => setStatusEscolhido(s)}
-                  >
-                    {STATUS_LABEL[s]}
-                  </Button>
-                ))}
-              </div>
-
-              {statusEscolhido && (
-                <>
-                  <Textarea
-                    placeholder={
-                      observacaoObrigatoria(statusEscolhido)
-                        ? "Observação (obrigatória para essa mudança)"
-                        : "Observação (opcional)"
-                    }
-                    value={observacao}
-                    onChange={(e) => setObservacao(e.target.value)}
-                  />
-                  <Button
-                    disabled={enviando}
-                    onClick={() => aplicarTransicao(statusEscolhido)}
-                  >
-                    Confirmar: {STATUS_LABEL[statusEscolhido]}
-                  </Button>
-                </>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="size-4 text-muted-foreground" aria-hidden />
+                {TIPO_AUTORIZACAO_LABEL[s.tipoAutorizacao]} · {s.dadosViagem.destino}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CalendarClock className="size-4 text-muted-foreground" aria-hidden />
+                {formatarData(s.dadosViagem.dataIda)}
+                {s.dadosViagem.dataVolta && ` a ${formatarData(s.dadosViagem.dataVolta)}`}
+              </span>
+              {urgencia && urgencia.nivel !== "normal" && (
+                <span
+                  className={cn(
+                    "rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    urgencia.nivel === "critica" && "bg-estrada text-paper",
+                    urgencia.nivel === "alta" && "bg-lavrado/25 text-ink ring-1 ring-lavrado",
+                    urgencia.nivel === "passou" && "text-estrada ring-1 ring-estrada/50",
+                  )}
+                >
+                  {urgencia.texto}
+                </span>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Coluna da decisão: fixa ao rolar no desktop; no celular vem logo
+            depois do resumo, antes dos dados. O histórico fica embaixo da
+            decisão no desktop e no fim da página no celular. */}
+        <aside
+          aria-label="Decisão e histórico"
+          className="grid gap-6 lg:sticky lg:top-28 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+        >
+          <DecisaoPainel
+            key={s.id}
+            solicitacao={s}
+            meuId={usuario?.id}
+            onAtualizada={setSolicitacao}
+            onConflito={() => void carregar()}
+            onProxima={irParaProxima}
+            buscandoProxima={buscandoProxima}
+          />
+          <div className="hidden lg:grid">
+            <HistoricoPainel historico={s.historico} />
+          </div>
+        </aside>
+
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 lg:col-start-1">
+          <DocumentosPainel solicitacao={s} />
+
+          <SecaoDados titulo="Requerente">
+            <Dado rotulo="Nome" valor={s.requerente.nomeCompleto} />
+            <Dado rotulo="Qualidade" valor={TIPO_RESPONSAVEL_LABEL[s.tipoResponsavel]} />
+            <Dado rotulo="CPF" valor={formatarCpf(s.requerente.cpf)} />
+            <Dado
+              rotulo="Documento"
+              valor={formatarDocumento(
+                s.requerente.tipoDocumento,
+                s.requerente.numeroDocumento,
+                s.requerente.orgaoExpedidor,
+              )}
+            />
+            <Dado rotulo="Telefone" valor={formatarTelefone(s.requerente.telefone)} />
+            <Dado rotulo="E-mail" valor={s.requerente.email} />
+            <Dado rotulo="Profissão" valor={s.requerente.profissao} />
+            <Dado rotulo="Endereço" valor={formatarEndereco(s.requerente.endereco)} largo />
+          </SecaoDados>
+
+          <SecaoDados titulo="Criança ou adolescente">
+            <Dado rotulo="Nome" valor={s.menor.nomeCompleto} />
+            <Dado
+              rotulo="Data de nascimento"
+              valor={
+                s.menor.dataNascimento &&
+                `${formatarData(s.menor.dataNascimento)}${idade !== null ? ` (${idade} ${idade === 1 ? "ano" : "anos"})` : ""}`
+              }
+            />
+            <Dado rotulo="Naturalidade" valor={s.menor.naturalidade} />
+            <Dado
+              rotulo="Documento"
+              valor={formatarDocumento(s.menor.tipoDocumento, s.menor.numeroDocumento, s.menor.orgaoExpedidor)}
+            />
+          </SecaoDados>
+
+          {s.responsavel?.nomeCompleto && (
+            <SecaoDados titulo="Responsável pela hospedagem">
+              <Dado rotulo="Nome" valor={s.responsavel.nomeCompleto} />
+              <Dado rotulo="CPF" valor={formatarCpf(s.responsavel.cpf)} />
+              <Dado
+                rotulo="Documento"
+                valor={formatarDocumento(
+                  s.responsavel.tipoDocumento,
+                  s.responsavel.numeroDocumento,
+                  s.responsavel.orgaoExpedidor,
+                )}
+              />
+              <Dado rotulo="Telefone" valor={formatarTelefone(s.responsavel.telefone)} />
+            </SecaoDados>
+          )}
+
+          <SecaoDados titulo="Viagem">
+            <Dado rotulo="Tipo" valor={TIPO_AUTORIZACAO_LABEL[s.tipoAutorizacao]} />
+            <Dado rotulo="Destino" valor={s.dadosViagem.destino} />
+            <Dado rotulo="Ida" valor={formatarData(s.dadosViagem.dataIda)} />
+            <Dado rotulo="Volta" valor={formatarData(s.dadosViagem.dataVolta)} />
+            <Dado rotulo="Meio de transporte" valor={s.dadosViagem.meioTransporte} />
+            <Dado
+              rotulo="Validade da autorização"
+              valor={s.dadosViagem.validadeDias ? `${s.dadosViagem.validadeDias} dias` : undefined}
+            />
+          </SecaoDados>
+
+          <div className="grid lg:hidden">
+            <HistoricoPainel historico={s.historico} />
+          </div>
+        </div>
       </div>
     </PageContainer>
   );
