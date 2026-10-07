@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CircleHelp, ClipboardPlus, FileSearch, Play, Route } from "lucide-react";
+import { ClipboardPlus, FileSearch, Play, Route } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,7 +17,7 @@ import {
 } from "@/components/ui/card";
 import { CriancaPapagaio } from "@/components/CriancaPapagaio";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { INFO_SERVICO } from "@/lib/faq";
+import { FAQ, INFO_SERVICO } from "@/lib/faq";
 
 const SERVICOS = [
   {
@@ -37,22 +43,15 @@ const SERVICOS = [
     Icon: FileSearch,
     cor: "var(--color-rio)",
   },
-  {
-    to: "/perguntas",
-    titulo: "Perguntas",
-    descricao: "Tire dúvidas sobre autorização de viagem de menor.",
-    Icon: CircleHelp,
-    cor: "var(--color-tepui)",
-  },
 ] as const;
 
-const VIDEO_YOUTUBE_ID = "sVxZIsjgnRM";
+const VIDEO_YOUTUBE_ID = "U3hYDknkFOc";
 
 export function HomePage() {
   const [mostrarVideo, setMostrarVideo] = useState(false);
 
   return (
-    <PageContainer largura="pagina" className="sm:py-14">
+    <PageContainer className="sm:py-14">
       <header className="mb-16 grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <p className="text-xs font-semibold tracking-[0.14em] text-rio uppercase">
@@ -116,7 +115,7 @@ export function HomePage() {
         <p className="mb-5 text-sm text-muted-foreground">
           Escolha por onde começar.
         </p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-3">
           {SERVICOS.map(({ to, titulo, descricao, Icon, cor }) => (
             <Link
               key={to}
@@ -134,6 +133,30 @@ export function HomePage() {
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="mb-14" aria-labelledby="perguntas-frequentes">
+        <h2
+          id="perguntas-frequentes"
+          className="mb-1 font-display text-xl font-semibold text-foreground"
+        >
+          Perguntas frequentes
+        </h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Tire dúvidas sobre autorização de viagem de criança e adolescente.
+        </p>
+        <Accordion type="single" collapsible className="w-full">
+          {FAQ.map((item, i) => (
+            <AccordionItem key={i} value={`item-${i}`}>
+              <AccordionTrigger className="text-left">
+                {item.pergunta}
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground">
+                {item.resposta}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </section>
 
       <Card className="border-border">
