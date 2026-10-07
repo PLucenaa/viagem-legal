@@ -1,12 +1,11 @@
-import { useId, type ComponentProps } from "react";
+import { useId, useRef, type ComponentProps, type KeyboardEvent } from "react";
+import { CircleIcon } from "lucide-react";
 import {
   Field,
   FieldContent,
   FieldDescription,
-  FieldLabel,
   FieldTitle,
 } from "@/components/ui/field";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { cn } from "@/lib/utils";
 
 export interface OpcaoRadio<T extends string> {
@@ -16,17 +15,16 @@ export interface OpcaoRadio<T extends string> {
 }
 
 interface OpcoesRadioProps<T extends string>
-  extends Omit<ComponentProps<typeof RadioGroup>, "value" | "onValueChange" | "defaultValue"> {
+  extends Omit<ComponentProps<"div">, "onChange" | "defaultValue"> {
   opcoes: readonly OpcaoRadio<T>[];
   value: T;
   onValueChange: (valor: T) => void;
 }
 
 /**
- * Radio em formato de cartões clicáveis (padrão "Choice Card" do shadcn:
- * FieldLabel envolvendo um Field) — pra escolhas curtas e mutuamente
- * exclusivas, onde ver todas as opções de uma vez ajuda mais que um select.
- * O número de colunas vem do className (ex.: "sm:grid-cols-3").
+ * Cartões de escolha mutuamente exclusiva.
+ * Cada cartão é um stop de Tab (esquerda → direita na grade). Clique,
+ * Space ou Enter seleciona. Setas também movem o foco e a escolha.
  */
 export function OpcoesRadio<T extends string>({
   opcoes,
@@ -36,25 +34,55 @@ export function OpcoesRadio<T extends string>({
   ...props
 }: OpcoesRadioProps<T>) {
   const id = useId();
+  const grupoRef = useRef<HTMLDivElement>(null);
+
+  function focarIndice(indice: number) {
+    const botoes = grupoRef.current?.querySelectorAll<HTMLButtonElement>(
+      "[role=radio]",
+    );
+    botoes?.[indice]?.focus();
+  }
+
+  function aoTecla(evento: KeyboardEvent<HTMLButtonElement>, indice: number) {
+    if (evento.key !== "ArrowRight" && evento.key !== "ArrowLeft") return;
+    evento.preventDefault();
+    const delta = evento.key === "ArrowRight" ? 1 : -1;
+    const proximo = (indice + delta + opcoes.length) % opcoes.length;
+    onValueChange(opcoes[proximo].valor);
+    requestAnimationFrame(() => focarIndice(proximo));
+  }
+
   return (
-    <RadioGroup
-      value={value}
-      onValueChange={(v) => onValueChange(v as T)}
-      className={cn("grid-cols-2 gap-2", className)}
+    <div
+      ref={grupoRef}
+      role="radiogroup"
+      data-slot="radio-group"
+      className={cn("grid grid-cols-2 gap-2", className)}
       {...props}
     >
-      {opcoes.map((opcao) => {
+      {opcoes.map((opcao, indice) => {
         const itemId = `${id}-${opcao.valor}`;
+        const selecionado = value === opcao.valor;
         return (
-          <FieldLabel
+          <button
             key={opcao.valor}
-            htmlFor={itemId}
+            type="button"
+            role="radio"
+            aria-checked={selecionado}
+            aria-labelledby={`${itemId}-titulo`}
+            aria-describedby={
+              opcao.descricao ? `${itemId}-descricao` : undefined
+            }
+            data-state={selecionado ? "checked" : "unchecked"}
+            tabIndex={0}
+            onClick={() => onValueChange(opcao.valor)}
+            onKeyDown={(evento) => aoTecla(evento, indice)}
             className={cn(
-              "cursor-pointer bg-card transition-[color,background-color,box-shadow] hover:bg-muted/50",
-              // Foco do teclado no cartão inteiro (o radio sozinho é pequeno demais pra ver).
-              "has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/50",
-              // Opções sem descrição são uma linha só: cartão mais baixo.
-              !opcao.descricao && "[&>*]:data-[slot=field]:px-3 [&>*]:data-[slot=field]:py-2.5",
+              "flex w-full cursor-pointer flex-col rounded-md border bg-card text-left leading-snug transition-[color,background-color,box-shadow] hover:bg-muted/50",
+              "[&>[data-slot=field]]:p-4",
+              "data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 dark:data-[state=checked]:bg-primary/10",
+              "outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+              !opcao.descricao && "[&>[data-slot=field]]:px-3 [&>[data-slot=field]]:py-2.5",
             )}
           >
             <Field orientation="horizontal">
@@ -66,18 +94,21 @@ export function OpcoesRadio<T extends string>({
                   </FieldDescription>
                 )}
               </FieldContent>
-              {/* O radio do Radix é um <button>: o nome vem explícito do
-                  título, senão o leitor de tela anuncia só "botão de opção". */}
-              <RadioGroupItem
-                id={itemId}
-                value={opcao.valor}
-                aria-labelledby={`${itemId}-titulo`}
-                aria-describedby={opcao.descricao ? `${itemId}-descricao` : undefined}
-              />
+              <span
+                aria-hidden
+                className={cn(
+                  "mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full border border-input",
+                  selecionado && "border-primary",
+                )}
+              >
+                {selecionado && (
+                  <CircleIcon className="size-2.5 fill-primary text-primary" />
+                )}
+              </span>
             </Field>
-          </FieldLabel>
+          </button>
         );
       })}
-    </RadioGroup>
+    </div>
   );
 }

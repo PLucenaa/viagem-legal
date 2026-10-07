@@ -160,8 +160,6 @@ export function TriagemPage() {
         centralizado
       />
 
-      {/* Pergunta numa coluna estreita; o resultado (placa + texto lado a
-          lado) precisa de mais largura. */}
       <div
         className={cn(
           "mx-auto",
@@ -203,9 +201,6 @@ export function TriagemPage() {
                 <p className="text-sm text-muted-foreground">
                   Pergunta {numeroPergunta}
                 </p>
-                {/* Recebe o foco ao avançar/voltar (tabIndex -1), como no
-                    Questionnaire do shadcn: o leitor de tela lê a pergunta
-                    nova e o Tab segue direto pras respostas. */}
                 <h2
                   ref={tituloRef}
                   tabIndex={-1}
@@ -262,7 +257,6 @@ export function TriagemPage() {
             carregando && "opacity-60",
           )}
         >
-          {/* Placa à esquerda (em cima no celular), texto à direita. */}
           <div className="grid md:grid-cols-[minmax(0,24rem)_1fr]">
             <div className="flex items-center justify-center bg-secondary/50 p-6">
               <Signpost ativo={resultado.caminho} className="max-w-[320px] md:max-w-none" />

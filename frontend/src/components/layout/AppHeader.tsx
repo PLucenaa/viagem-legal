@@ -8,7 +8,7 @@ import { useContagemPainel } from "@/lib/useContagemPainel";
 import { MenuUsuario } from "@/components/layout/MenuUsuario";
 import { NotificacoesPainel } from "@/components/layout/NotificacoesPainel";
 import { cn } from "@/lib/utils";
-import { CONTAINER } from "@/lib/layout";
+import { BotaoAltoContraste } from "@/components/layout/BotaoAltoContraste";
 
 export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -18,15 +18,12 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 overflow-hidden bg-ink print:hidden [&_:is(a,button):focus-visible]:outline-none [&_:is(a,button):focus-visible]:ring-2 [&_:is(a,button):focus-visible]:ring-lavrado">
-      <div className={cn(CONTAINER, "flex min-h-16 items-center justify-between gap-3 py-2 sm:min-h-20 sm:gap-4")}>
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:min-h-20 sm:gap-4 sm:px-6">
         <Link
           to="/"
           className="flex min-w-0 flex-1 items-center gap-3"
           onClick={() => setMenuAberto(false)}
         >
-          {/* Logo completa (símbolo + "Poder Judiciário do Estado de
-              Roraima"), como no tjrr-certidoes-web: largura fixa e altura
-              automática — o header cresce pra acompanhar. */}
           <img
             src={logoTjrr}
             alt=""
@@ -34,8 +31,6 @@ export function AppHeader() {
             className="h-auto w-24 shrink-0 object-contain sm:w-28"
           />
 
-          {/* Abaixo de sm não cabe o título completo em uma linha — usa a
-              marca curta pra não quebrar e estourar a altura do header. */}
           <span className="min-w-0 truncate text-[13px] font-semibold tracking-[0.06em] text-paper uppercase lg:hidden">
             {HEADER.marcaCurta}
           </span>
@@ -69,6 +64,7 @@ export function AppHeader() {
               {item.label}
             </NavLink>
           ))}
+          <BotaoAltoContraste />
           {usuario ? (
             <div className="ml-2 flex items-center gap-1 border-l border-paper/20 pl-3">
               {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
@@ -86,7 +82,7 @@ export function AppHeader() {
         </nav>
 
         <div className="flex items-center gap-1 lg:hidden">
-          {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
+          <BotaoAltoContraste compacto />
           <button
             type="button"
             className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10"
@@ -95,11 +91,7 @@ export function AppHeader() {
             aria-label={menuAberto ? "Fechar menu" : "Abrir menu"}
             onClick={() => setMenuAberto((v) => !v)}
           >
-            {menuAberto ? (
-              <X className="size-6" />
-            ) : (
-              <Menu className="size-6" />
-            )}
+            {menuAberto ? <X className="size-6" /> : <Menu className="size-6" />}
           </button>
         </div>
       </div>

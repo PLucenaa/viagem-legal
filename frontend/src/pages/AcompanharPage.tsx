@@ -199,7 +199,7 @@ export function AcompanharPage() {
       >
         <InputMascara
           aria-label="Número do protocolo"
-          placeholder="VL-2026-000000"
+          placeholder="Ex: VL-2026-000000"
           inputMode="numeric"
           value={protocolo}
           onChange={setProtocolo}

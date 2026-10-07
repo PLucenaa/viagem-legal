@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+    <script>
+      try {
+        if (localStorage.getItem("highContrast") === "enabled") {
+          document.documentElement.classList.add("high-contrast");
+        }
+        var escala = localStorage.getItem("a11yFontScale");
+        if (escala) {
+          document.documentElement.style.setProperty("--a11y-font-size", escala + "%");
+        }
+      } catch (e) {}
+    </script>
     <title>Viagem Legal — TJRR</title>
   </head>
   <body>

@@ -118,6 +118,9 @@
     border-color: var(--border);
     outline-color: color-mix(in oklch, var(--ring) 50%, transparent);
   }
+  html {
+    font-size: var(--a11y-font-size, 100%);
+  }
   body {
     margin: 0;
     background-color: var(--background);
@@ -132,6 +135,68 @@
     font-family: var(--font-display);
     letter-spacing: -0.01em;
   }
+}
+
+/*
+ * Alto contraste: troca a paleta do tema (igual ao .dark).
+ * Evita pintar span/p de branco em blocos que ainda têm fundo claro
+ */
+html.high-contrast {
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #121212;
+  --card-foreground: #ffffff;
+  --popover: #121212;
+  --popover-foreground: #ffffff;
+  --primary: #ffff00;
+  --primary-foreground: #000000;
+  --secondary: #121212;
+  --secondary-foreground: #ffffff;
+  --muted: #1a1a1a;
+  --muted-foreground: #eeeeee;
+  --accent: #ffff00;
+  --accent-foreground: #000000;
+  --destructive: #ff6b6b;
+  --destructive-foreground: #000000;
+  --border: #ffffff;
+  --input: #ffffff;
+  --ring: #ffff00;
+  --ink: #000000;
+  --paper: #ffffff;
+  --lavrado: #ffff00;
+  --estrada: #ff6b6b;
+  --rio: #7ec8c0;
+  --tepui: #eeeeee;
+}
+
+html.high-contrast,
+html.high-contrast body {
+  background-color: var(--background);
+  color: var(--foreground);
+  background-image: none !important;
+}
+
+html.high-contrast #app-shell a:not(.bg-card):not([data-slot="button"]):not(.bg-lavrado) {
+  color: #ffff00;
+}
+
+html.high-contrast #app-shell a.bg-lavrado {
+  color: #000000;
+}
+
+html.high-contrast #app-shell input,
+html.high-contrast #app-shell select,
+html.high-contrast #app-shell textarea {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+html.high-contrast #a11y-widget button,
+html.high-contrast #a11y-widget [role="dialog"] {
+  background-color: #121212;
+  color: #ffffff;
+  border-color: #ffffff;
 }
 
 /* Placa do resultado da triagem: a seta escolhida balança uma vez ao

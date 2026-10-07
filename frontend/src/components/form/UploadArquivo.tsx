@@ -33,8 +33,7 @@ function formatarTamanho(bytes: number): string {
 
 /**
  * Área de envio de arquivo (estado vazio do shadcn): aceita clicar em
- * "Escolher arquivo" ou arrastar e soltar. O <input type="file"> fica
- * escondido e fora do Tab — quem recebe o foco é o botão, que abre o seletor.
+ * "Escolher arquivo" ou arrastar e soltar.
  */
 export function UploadArquivo({
   rotulo,

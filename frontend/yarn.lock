@@ -180,6 +180,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@djpfs/react-vlibras@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "@djpfs/react-vlibras@npm:2.0.2"
+  checksum: 10c0/74816921cbaf68e707543db7efb2fd3465acc25f29205ec1629cbd883d8f65f7e524003413ad54a4cde8e10838d2e0bf7a7a5df0cf5cb4b57c5eb32dde470fd9
+  languageName: node
+  linkType: hard
+
 "@emnapi/core@npm:1.11.1":
   version: 1.11.1
   resolution: "@emnapi/core@npm:1.11.1"
@@ -2704,6 +2711,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "frontend@workspace:."
   dependencies:
+    "@djpfs/react-vlibras": "npm:^2.0.2"
     "@eslint/js": "npm:^10.0.1"
     "@hookform/resolvers": "npm:^5.4.0"
     "@tailwindcss/vite": "npm:^4.3.3"

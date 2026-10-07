@@ -18,20 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { CardSolicitacao } from "@/components/painel/CardSolicitacao";
-import {
-  ApiError,
-  assumirSolicitacao,
-  contarSolicitacoes,
-  listarSolicitacoes,
-} from "@/lib/api";
-import { useAuth } from "@/lib/auth";
-import { ABAS_PAINEL } from "@/lib/statusSolicitacao";
-import type {
-  ContagemPainelResponse,
-  Page,
-  SolicitacaoResumoResponse,
-} from "@/lib/types";
+import { STATUS_BADGE_VARIANT, STATUS_LABEL } from "@/lib/statusSolicitacao";
+import type { Page, SolicitacaoResumoResponse, StatusSolicitacao } from "@/lib/types";
 
 /** A fila se atualiza sozinha: um pedido novo aparece sem recarregar. */
 const INTERVALO_ATUALIZACAO_MS = 60_000;
@@ -183,33 +171,30 @@ export function PainelListaPage() {
     <PageContainer>
       <PageHeader
         atual="Painel"
-        titulo="Pedidos de autorização"
+        titulo="Painel interno — Solicitações"
+        descricao="Fila de solicitações de autorização de viagem para conferência e autorização."
       />
 
-      {/* Pedidos que voltaram: o cidadão mandou documento depois do pedido
-          de correção. role="status": a atualização automática da fila também
-          é anunciada pelo leitor de tela. */}
-      <div role="status">
-        {!!contagem?.correcoesRecebidas && aba.id !== "correcao" && (
-          <div className="mb-6 flex flex-wrap items-center gap-3 rounded-lg border border-rio/40 bg-rio/10 px-4 py-3 text-sm">
-            <FileCheck2 className="size-5 shrink-0 text-rio" aria-hidden />
-            <p className="flex-1">
-              {contagem.correcoesRecebidas === 1
-                ? "1 pedido voltou com correção do cidadão e espera conferência."
-                : `${contagem.correcoesRecebidas} pedidos voltaram com correção do cidadão e esperam conferência.`}
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setBuscaDigitada("");
-                atualizarParams({ aba: "correcao", busca: null, minhas: null, pagina: null });
-              }}
-            >
-              Ver {contagem.correcoesRecebidas === 1 ? "pedido" : "pedidos"}
-            </Button>
-          </div>
-        )}
+      <div className="mb-4 flex items-center gap-3">
+        <Select
+          value={status}
+          onValueChange={(v) => {
+            setStatus(v as StatusSolicitacao | "TODOS");
+            setPagina(0);
+          }}
+        >
+          <SelectTrigger className="w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="TODOS">Todos os status</SelectItem>
+            {TODOS_STATUS.map((s) => (
+              <SelectItem key={s} value={s}>
+                {STATUS_LABEL[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* A fila fica dentro do TabsContent: cada aba aponta (aria-controls)

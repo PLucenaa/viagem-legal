@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CalendarClock, MapPin } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { DecisaoPainel } from "@/components/painel/DecisaoPainel";
-import { DocumentosPainel } from "@/components/painel/DocumentosPainel";
-import { HistoricoPainel } from "@/components/painel/HistoricoPainel";
-import { Dado, SecaoDados } from "@/components/painel/SecaoDados";
-import { ApiError, detalharSolicitacao, listarSolicitacoes } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import {
   formatarCpf,
   formatarData,
@@ -115,15 +109,12 @@ export function PainelDetalhePage() {
   if (!solicitacao || solicitacao.id !== Number(id)) {
     return (
       <PageContainer>
-        <div className="grid gap-6 lg:grid-cols-[1fr_24rem]" aria-busy>
-          <div className="grid gap-4">
-            <Skeleton className="h-10 w-64" />
-            <Skeleton className="h-32 rounded-xl" />
-            <Skeleton className="h-64 rounded-xl" />
-          </div>
-          <Skeleton className="h-80 rounded-xl" />
-          <span className="sr-only">Carregando o pedido…</span>
-        </div>
+        <p className="text-sm text-destructive">{erro ?? "Não encontrado."}</p>
+        <Button asChild variant="outline" className="mt-4 gap-2">
+          <Link to="/painel">
+            <ArrowLeft className="size-4" aria-hidden /> Voltar para a lista
+          </Link>
+        </Button>
       </PageContainer>
     );
   }
@@ -136,10 +127,12 @@ export function PainelDetalhePage() {
     <PageContainer>
       <PageHeader
         trilha={[{ rotulo: "Painel", to: "/painel" }]}
-        atual={s.protocolo}
-        titulo={<span className="tabular-nums">{s.protocolo}</span>}
+        atual={solicitacao.protocolo}
+        titulo={solicitacao.protocolo}
       >
-        <Badge variant={STATUS_BADGE_VARIANT[s.status]}>{STATUS_LABEL[s.status]}</Badge>
+        <Badge variant={STATUS_BADGE_VARIANT[solicitacao.status]}>
+          {STATUS_LABEL[solicitacao.status]}
+        </Badge>
       </PageHeader>
 
       {/* minmax(0, 1fr): sem isso, um texto longo (nome de arquivo) alarga a
