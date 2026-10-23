@@ -8,7 +8,6 @@ import { useContagemPainel } from "@/lib/useContagemPainel";
 import { MenuUsuario } from "@/components/layout/MenuUsuario";
 import { NotificacoesPainel } from "@/components/layout/NotificacoesPainel";
 import { cn } from "@/lib/utils";
-import { BotaoAltoContraste } from "@/components/layout/BotaoAltoContraste";
 
 export function AppHeader() {
   const [menuAberto, setMenuAberto] = useState(false);
@@ -45,44 +44,44 @@ export function AppHeader() {
           <span className="sr-only">{HEADER.logoAlt}</span>
         </Link>
 
-        <nav
-          className="hidden items-center gap-1 lg:flex"
-          aria-label="Principal"
-        >
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === "/"}
-              className={({ isActive }) =>
-                cn(
-                  "rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper",
-                  isActive && "bg-lavrado text-ink hover:bg-lavrado",
-                )
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-          <BotaoAltoContraste />
-          {usuario ? (
-            <div className="ml-2 flex items-center gap-1 border-l border-paper/20 pl-3">
-              {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
-              <MenuUsuario usuario={usuario} onSair={sair} />
-            </div>
-          ) : (
-            <Link
-              to="/acesso-interno"
-              className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-paper/30 px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper"
-            >
-              <LogIn className="size-3.5" aria-hidden />
-              Entrar
-            </Link>
-          )}
+        <nav className="hidden lg:block" aria-label="Principal">
+          <ul className="flex list-none items-center gap-1 p-0">
+            {nav.map((item) => (
+              <li key={item.to}>
+                <NavLink
+                  to={item.to}
+                  end={item.to === "/"}
+                  className={({ isActive }) =>
+                    cn(
+                      "rounded-full px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper",
+                      isActive && "bg-lavrado text-ink hover:bg-lavrado",
+                    )
+                  }
+                >
+                  {item.label}
+                </NavLink>
+              </li>
+            ))}
+            {usuario ? (
+              <li className="ml-2 flex items-center gap-1 border-l border-paper/20 pl-3">
+                {podeAcessarPainel && <NotificacoesPainel contagem={contagem} />}
+                <MenuUsuario usuario={usuario} onSair={sair} />
+              </li>
+            ) : (
+              <li>
+                <Link
+                  to="/acesso-interno"
+                  className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-paper/30 px-3.5 py-1.5 text-xs font-medium tracking-wide text-paper/80 uppercase transition hover:bg-paper/10 hover:text-paper"
+                >
+                  <LogIn className="size-3.5" aria-hidden />
+                  Entrar
+                </Link>
+              </li>
+            )}
+          </ul>
         </nav>
 
         <div className="flex items-center gap-1 lg:hidden">
-          <BotaoAltoContraste compacto />
           <button
             type="button"
             className="inline-flex size-10 items-center justify-center rounded-md text-paper transition hover:bg-paper/10"
